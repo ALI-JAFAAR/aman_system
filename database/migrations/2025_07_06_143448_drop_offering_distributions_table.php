@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('offering_distributions', function (Blueprint $table) {
+            Schema::dropIfExists('offering_distributions');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('offering_distributions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('offering_id')
+                ->constrained('partner_offerings')
+                ->cascadeOnDelete();
+            $table->foreignId('organization_id')
+                ->constrained('organizations')
+                ->cascadeOnDelete();
+            $table->enum('mode', ['percentage','fixed']);
+            $table->decimal('value', 12, 2);
+            $table->timestamps();
+        });
+    }
+};
