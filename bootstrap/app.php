@@ -15,8 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
 
         then: function () {
-            Route::middleware('web')->group(__DIR__ . '/../routes/app.php');
-            Route::middleware('api')->group(__DIR__ . '/../routes/app-api.php');
+            require(__DIR__ .'/../routes/app.php');
+            require(__DIR__ . '/../routes/app-api.php');
         }
     )
     ->withMiddleware(function (Middleware $middleware) {

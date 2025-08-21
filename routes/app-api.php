@@ -1,7 +1,41 @@
 <?php
 
+use App\Http\Controllers\Api\AdministrativeRecordController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\ClaimController;
+use App\Http\Controllers\Api\ClaimResponseController;
+use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\FinancialReportController;
+use App\Http\Controllers\Api\HealthAnswerController;
+use App\Http\Controllers\Api\LedgerEntryController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OfferingDistributionController;
+use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\OrganizationSpecializationController;
+use App\Http\Controllers\Api\PackageController;
+use App\Http\Controllers\Api\PartnerOfferingController;
+use App\Http\Controllers\Api\ProfessionalRecordController;
+use App\Http\Controllers\Api\ProfessionController;
+use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ProjectWorkerController;
+use App\Http\Controllers\Api\ReconciliationController;
+use App\Http\Controllers\Api\ReconciliationEntryController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\SpecializationController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\UserAffiliationController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserOfferingController;
+use App\Http\Controllers\Api\UserProfessionController;
+use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Controllers\Api\UserServiceController;
+use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\WalletController;
+use App\Http\Controllers\Api\WithdrawRequestController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
+//use App\Http\Controllers\Api\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,12 +47,53 @@ use App\Http\Controllers\Api\AuthController;
 |
 */
 
-Route::name('api.')
-    ->prefix('api')
-    ->group(function () {
-        Route::post('/login', [AuthController::class, 'login'])->name(
-            'api.login'
-        );
+//Route::name('api.')
+//    ->prefix('api')
+//    ->group(function () {
+//        Route::post('/login', [AuthController::class, 'login'])->name(
+//            'api.login'
+//        );
+//
+//        Route::middleware('auth:sanctum')->group(function () {});
+//    });
 
-        Route::middleware('auth:sanctum')->group(function () {});
-    });
+// Auto-generated API resources for your models.
+// You can include this file from routes/api.php like:
+//   require __DIR__ . '/api_generated.php';
+
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    Route::apiResource('AdministrativeRecord', AdministrativeRecordController::class);
+    Route::apiResource('AuditLog', AuditLogController::class);
+    Route::apiResource('BankAccount', BankAccountController::class);
+    Route::apiResource('Claim', ClaimController::class);
+    Route::apiResource('ClaimResponse', ClaimResponseController::class);
+    Route::apiResource('Contract', ContractController::class);
+    Route::apiResource('Employee', EmployeeController::class);
+    Route::apiResource('FinancialReport', FinancialReportController::class);
+    Route::apiResource('HealthAnswer', HealthAnswerController::class);
+    Route::apiResource('LedgerEntry', LedgerEntryController::class);
+    Route::apiResource('Notification', NotificationController::class);
+    Route::apiResource('OfferingDistribution', OfferingDistributionController::class);
+    Route::apiResource('Organization', OrganizationController::class);
+    Route::apiResource('OrganizationSpecialization', OrganizationSpecializationController::class);
+    Route::apiResource('Package', PackageController::class);
+    Route::apiResource('PartnerOffering', PartnerOfferingController::class);
+    Route::apiResource('Profession', ProfessionController::class);
+    Route::apiResource('ProfessionalRecord', ProfessionalRecordController::class);
+    Route::apiResource('Project', ProjectController::class);
+    Route::apiResource('ProjectWorker', ProjectWorkerController::class);
+    Route::apiResource('Reconciliation', ReconciliationController::class);
+    Route::apiResource('ReconciliationEntry', ReconciliationEntryController::class);
+    Route::apiResource('Service', ServiceController::class);
+    Route::apiResource('Specialization', SpecializationController::class);
+    Route::apiResource('Transaction', TransactionController::class);
+    Route::apiResource('User', UserController::class);
+    Route::apiResource('UserAffiliation', UserAffiliationController::class);
+    Route::apiResource('UserOffering', UserOfferingController::class);
+    Route::apiResource('UserProfession', UserProfessionController::class);
+    Route::apiResource('UserProfile', UserProfileController::class);
+    Route::apiResource('UserService', UserServiceController::class);
+    Route::apiResource('Vehicle', VehicleController::class);
+    Route::apiResource('Wallet', WalletController::class);
+    Route::apiResource('WithdrawRequest', WithdrawRequestController::class);
+});
