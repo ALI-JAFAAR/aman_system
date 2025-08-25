@@ -38,11 +38,15 @@ use Filament\Forms\Set;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+use App\Enums\OrganizationType;
+use App\Models\Package;
+use Filament\Forms\Components\Radio;
 class AffiliationWizard extends Page implements HasForms
 {
     use InteractsWithForms;
-
+    public ?array $data = [];
     protected static ?string $navigationIcon  = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'تسجيل انتساب جديد';
     protected static ?int    $navigationSort  = 1;
@@ -66,6 +70,9 @@ class AffiliationWizard extends Page implements HasForms
     public array   $extra_data          = [];
     public string  $image               = '';
 
+
+    public string $employment_sector = 'private';
+
     // موظف مُصدِّر العملية
     public ?int $issuer_employee_id = null;
 
@@ -87,105 +94,132 @@ class AffiliationWizard extends Page implements HasForms
     {
         return [
             Wizard::make([
-                // 1) الحساب والبيانات الأساسية
-                Step::make('البيانات الأساسية')->schema([
-                    TextInput::make('email')->label('البريد الإلكتروني')->email()->required()->unique(User::class, 'email'),
-                    TextInput::make('password')->label('كلمة المرور')->password()->required()->minLength(8),
-                    TextInput::make('name')->label('الاسم الرباعي')->required(),
-                    TextInput::make('mother_name')->label('اسم الأم'),
-                    TextInput::make('national_id')->label('رقم الهوية'),
-                    DatePicker::make('date_of_birth')->label('تاريخ الميلاد'),
-                    TextInput::make('place_of_birth')->label('مكان الميلاد'),
-                    TextInput::make('phone')->label('رقم الهاتف')->required(),
-                ])->columns(2),
 
-                // 2) العنوان والتفاصيل + Extra JSON
-                Step::make('العنوان والتفاصيل')->schema([
-                    TextInput::make('address_province')->label('المحافظة')->required(),
-                    TextInput::make('address_district')->label('القضاء')->required(),
-                    TextInput::make('address_subdistrict')->label('الناحية')->required(),
-                    TextInput::make('address_details')->label('تفاصيل العنوان')->required(),
-                    KeyValue::make('extra_data')->label('بيانات إضافية (key=>value)')
-                        ->keyLabel('المفتاح')->valueLabel('القيمة')->reorderable()->columnSpanFull(),
-                    TextInput::make('image')->label('صورة (مسار/اسم ملف)')->maxLength(255),
-                ])->columns(2),
+                Step::make('المعلومات الشخصية والحساب والسكن')->schema([
+                        // إنشاء الحساب
+                        TextInput::make('name')->label('الاسم الرباعي')->required(),
+                        TextInput::make('email')->label('البريد الإلكتروني')->email()->required()->unique(User::class, 'email'),
+                        TextInput::make('password')->label('كلمة المرور')->password()->required()->minLength(8),
+                        TextInput::make('phone')->label('رقم الهاتف')->required(),
 
-                // 3) اختيار الموظّف المُصدِّر + مجموعة الانتسابات (متعددة)
+                        // معلومات شخصية
+                        TextInput::make('mother_name')->label('اسم الأم'),
+                        TextInput::make('national_id')->label('رقم الهوية'),
+                        DatePicker::make('date_of_birth')->label('تاريخ الميلاد'),
+                        TextInput::make('place_of_birth')->label('مكان الميلاد'),
+
+                        // معلومات السكن
+                        TextInput::make('address_province')->label('المحافظة')->required(),
+                        TextInput::make('address_district')->label('القضاء')->required(),
+                        TextInput::make('address_subdistrict')->label('الناحية')->required(),
+                        TextInput::make('address_details')->label('تفاصيل العنوان')->required(),
+                    ])
+                    ->columns(2),
+
+
                 Step::make('الانتسابات')->schema([
-                    Select::make('issuer_employee_id')
-                        ->label('الموظّف المنفّذ')
-                        ->options(
-                            Employee::query()
-                                ->leftJoin('users','employees.user_id','users.id')
-                                ->select('employees.id','users.name as label')
-                                ->orderBy('label')->pluck('label','employees.id')->toArray()
-                        )
+                    // ❶ اختيار القطاع مرة واحدة
+                    Select::make('employment_sector')
+                        ->label('هل أنت موظّف؟ القطاع')
+                        ->options(['public' => 'عام', 'private' => 'خاص'])
+                        ->default('private')
                         ->required()
-                        ->default(fn()=>Employee::where('user_id',auth()->id())->value('id')),
+                        ->live(),
 
+                    // ❷ مجموعة الانتسابات (متعددة)
                     Repeater::make('affiliations')
                         ->label('انتسابات الجهات (يمكن إضافة أكثر من جهة)')
                         ->schema([
-                            // القطاع
-                            Select::make('sector')
-                                ->label('القطاع')
-                                ->options(['public'=>'عام','private'=>'خاص'])
-                                ->live()
-                                ->required(),
-
-                            // نوع الجهة (اتحاد أو مؤسسة)
+                            // عند القطاع الخاص فقط نسمح بالاختيار بين اتحاد/مؤسسة
                             Select::make('kind')
                                 ->label('نوع الجهة')
-                                ->options(['federation'=>'اتحاد','institution'=>'مؤسسة'])
+                                ->options(['federation' => 'اتحاد', 'institution' => 'مؤسسة'])
                                 ->live()
-                                ->required()
-                                // لو قطاع عام: مؤسسات فقط
-                                ->visible(fn(Get $get)=>true)
-                                ->disabled(fn(Get $get)=>$get('sector')==='public' && $get('kind')!=='institution')
-                                ->afterStateHydrated(function(Set $set, Get $get, $state){
-                                    if ($get('sector')==='public') $set('kind','institution');
-                                }),
+                                ->visible(fn (Get $get) => $get('../../employment_sector') === 'private')
+                                ->required(fn (Get $get) => $get('../../employment_sector') === 'private'),
 
-                            // اتحاد
+                            // الاتحادات (للقطاع الخاص عند اختيار نوع = اتحاد)
                             Select::make('federation_id')
                                 ->label('الاتحاد')
-                                ->options(function () {
-                                    return Organization::where('type','federation')->orderBy('name')->pluck('name','id')->toArray();
-                                })
+                                ->options(fn () =>
+                                Organization::whereIn('type',['general_union','sub_union','trade_union'])
+                                    ->orderBy('name')->pluck('name', 'id')->toArray()
+                                )
                                 ->searchable()->preload()->live()
-                                ->visible(fn(Get $get)=>$get('kind')==='federation')
-                                ->required(fn(Get $get)=>$get('kind')==='federation'),
+                                ->visible(fn (Get $get) =>
+                                    $get('../../employment_sector') === 'private'
+                                    && $get('kind') === 'federation'
+                                )
+                                ->required(fn (Get $get) =>
+                                    $get('../../employment_sector') === 'private'
+                                    && $get('kind') === 'federation'
+                                ),
 
-                            // نقابة تابعة للاتحاد
+                            // النقابات التابعة للاتحاد
                             Select::make('union_id')
                                 ->label('النقابة')
-                                ->options(fn(Get $get)=> $get('federation_id')
-                                    ? Organization::where('type','union')->where('parent_id',$get('federation_id'))->orderBy('name')->pluck('name','id')->toArray()
-                                    : [])
+                                ->options(fn (Get $get) =>
+                                $get('federation_id')
+                                    ? Organization::where('type', 'guild')
+                                    ->where('organization_id', $get('federation_id'))
+                                    ->orderBy('name')->pluck('name', 'id')->toArray()
+                                    : []
+                                )
                                 ->searchable()->preload()
-                                ->visible(fn(Get $get)=>$get('kind')==='federation')
-                                ->required(fn(Get $get)=>$get('kind')==='federation'),
+                                ->visible(fn (Get $get) =>
+                                    $get('../../employment_sector') === 'private'
+                                    && $get('kind') === 'federation'
+                                )
+                                ->required(fn (Get $get) =>
+                                    $get('../../employment_sector') === 'private'
+                                    && $get('kind') === 'federation'
+                                ),
 
-                            // مؤسسة (قطاع عام أو خاص)
+                            // مؤسسات:
+                            // - للقطاع العام: مؤسسات code = OR1 فقط
+                            // - للقطاع الخاص: مؤسسات رئيسية فقط (نفترض parent_id IS NULL)
                             Select::make('institution_id')
                                 ->label('المؤسسة')
                                 ->options(function (Get $get) {
-                                    $q = Organization::where('type','institution');
-                                    if ($get('sector')==='public') {
-                                        // لو عندك تمييز لمؤسسات حكومية بحقل آخر عدّله هنا
+                                    if ($get('../../employment_sector') === 'public') {
+                                        return Organization::where('type', 'organization')
+                                            ->orderBy('name')->pluck('name', 'id')->toArray();
                                     }
-                                    return $q->orderBy('name')->pluck('name','id')->toArray();
+                                    // قطاع خاص: مؤسسات رئيسية فقط
+                                    return Organization::where('type', 'organization')
+                                        ->whereNull('organization_id')   // عدّلها إذا كان لديك معيار آخر "رئيسية"
+                                        ->orderBy('name')->pluck('name', 'id')->toArray();
                                 })
                                 ->searchable()->preload()
-                                ->visible(fn(Get $get)=>$get('kind')==='institution')
-                                ->required(fn(Get $get)=>$get('kind')==='institution'),
+                                ->visible(fn (Get $get) =>
+                                    // تظهر دائمًا في القطاع العام،
+                                    // وفي القطاع الخاص تظهر فقط لو نوع الجهة = مؤسسة
+                                    $get('../../employment_sector') === 'public'
+                                    || ($get('../../employment_sector') === 'private' && $get('kind') === 'institution')
+                                )
+                                ->required(fn (Get $get) =>
+                                    $get('../../employment_sector') === 'public'
+                                    || ($get('../../employment_sector') === 'private' && $get('kind') === 'institution')
+                                ),
 
-                            // رسوم انتساب لكل جهة
-                            TextInput::make('affiliation_fee')->label('رسوم الانتساب')->numeric()->default(0),
+                            // المهنة (إجباري) + التخصص (اختياري) لكل انتساب
+                            Select::make('profession_id')
+                                ->label('المهنة')
+                                ->options(fn () => Profession::orderBy('name')->pluck('name', 'id')->toArray())
+                                ->searchable()->preload()->live()
+                                ->required(),
+
+                            Select::make('specialization_id')
+                                ->label('التخصص (اختياري)')
+                                ->options(fn (Get $get) =>
+                                $get('profession_id')
+                                    ? Specialization::where('profession_id', $get('profession_id'))
+                                    ->orderBy('name')->pluck('name', 'id')->toArray()
+                                    : []
+                                )
+                                ->searchable()->preload()
+                                ->nullable(),
                             DatePicker::make('joined_at')->label('تاريخ الانضمام')->default(now()),
-                            Select::make('status')->label('حالة الانتساب')
-                                ->options(['pending'=>'قيد المعالجة','active'=>'مفعل','rejected'=>'مرفوض'])
-                                ->default('pending')->required(),
                         ])
                         ->defaultItems(1)
                         ->minItems(1)
@@ -194,18 +228,141 @@ class AffiliationWizard extends Page implements HasForms
                         ->cloneable(false),
                 ])->columns(1),
 
-                // 4) المهنة والاختصاص
-                Step::make('المهنة والاختصاص')->schema([
-                    Select::make('profession_id')->label('المهنة')
-                        ->options(Profession::orderBy('name')->pluck('name','id')->toArray())
-                        ->searchable()->preload()->live()->required(),
-                    Select::make('specialization_id')->label('الاختصاص')
-                        ->options(fn(Get $get)=> $get('profession_id')
-                            ? Specialization::where('profession_id',$get('profession_id'))->orderBy('name')->pluck('name','id')->toArray()
-                            : [])
-                        ->searchable()->preload()->required(),
-                    Textarea::make('notes')->label('ملاحظات')->columnSpanFull(),
-                ])->columns(2),
+                Step::make('الباقات والعروض')->schema([
+                    Repeater::make('offerings')
+                        ->label('اختر الباقات / العروض (يمكن إضافة أكثر من عنصر)')
+                        ->schema([
+
+                        // 1) PARTNER (insurance company) — radio
+                        Radio::make('partner_id')
+                            ->label('الشريك (شركة التأمين)')
+                            ->columns(2)
+                            ->required()
+                            ->live()
+                            ->options(function () {
+                                $today = now()->toDateString();
+
+                                return Organization::where('type', OrganizationType::INSURANCE_COMPANY)
+                                    ->whereHas('partnerOfferings', fn ($q) =>
+                                    $q->where(fn ($qq) => $qq->whereNull('contract_start')
+                                        ->orWhereDate('contract_start', '<=', $today))
+                                        ->where(fn ($qq) => $qq->whereNull('contract_end')
+                                            ->orWhereDate('contract_end', '>=', $today))
+                                    )
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->mapWithKeys(fn ($label, $id) => [(string) $id => $label])   // string keys
+                                    ->all();
+                            })
+                            ->formatStateUsing(fn ($state) => filled($state) ? (string) $state : null)
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? (int) $state : null)
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('package_id', null);
+                                $set('partner_offering_id', null);
+                                $set('price', null);
+                                $set('details', null);
+                            })
+                            ->helperText('تظهر فقط شركات التأمين التي لديها عروض فعّالة اليوم.'),
+
+                        // 2) PACKAGE — radio, only after partner
+                        Radio::make('package_id')
+                            ->label('الباقة')
+                            ->columns(2)
+                            ->live()
+                            ->hidden(fn (Get $get) => blank($get('partner_id')))
+                            ->required(fn (Get $get) => filled($get('partner_id')))
+                            ->options(function (Get $get) {
+                                $partnerId = (int) $get('partner_id');
+                                if (!$partnerId) return [];
+
+                                $today = now()->toDateString();
+
+                                $activePackageIds = PartnerOffering::query()
+                                    ->where('organization_id', $partnerId)
+                                    ->whereNull('deleted_at')
+                                    ->where(fn ($q) => $q->whereNull('contract_start')->orWhereDate('contract_start', '<=', $today))
+                                    ->where(fn ($q) => $q->whereNull('contract_end')->orWhereDate('contract_end', '>=', $today))
+                                    ->pluck('package_id')->unique()->values();
+
+                                if ($activePackageIds->isEmpty()) return [];
+
+                                return Package::whereIn('id', $activePackageIds)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->mapWithKeys(fn ($label, $id) => [(string) $id => $label])   // string keys
+                                    ->all();
+                            })
+                            ->formatStateUsing(fn ($state) => filled($state) ? (string) $state : null)
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? (int) $state : null)
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('partner_offering_id', null);
+                                $set('price', null);
+                                $set('details', null);
+                            }),
+
+                        // 3) OFFER (partner_offering) — radio, only after partner & package
+                        Radio::make('partner_offering_id')
+                            ->label('العرض')
+                            ->columns(1)
+                            ->live()
+                            ->hidden(fn (Get $get) => blank($get('partner_id')) || blank($get('package_id')))
+                            ->required(fn (Get $get) => filled($get('partner_id')) && filled($get('package_id')))
+                            ->options(function (Get $get) {
+                                $partnerId = (int) $get('partner_id');
+                                $packageId = (int) $get('package_id');
+                                if (!$partnerId || !$packageId) return [];
+
+                                $today = now()->toDateString();
+
+                                return PartnerOffering::query()
+                                    ->where('organization_id', $partnerId)
+                                    ->where('package_id', $packageId)
+                                    ->whereNull('deleted_at')
+                                    ->where(fn ($q) => $q->whereNull('contract_start')->orWhereDate('contract_start', '<=', $today))
+                                    ->where(fn ($q) => $q->whereNull('contract_end')->orWhereDate('contract_end', '>=', $today))
+                                    ->orderBy('id')
+                                    ->get()
+                                    ->mapWithKeys(fn ($po) => [
+                                        (string) $po->id => "عقد #{$po->id} — " . number_format((float) $po->price) . " IQD",
+                                    ])
+                                    ->all();
+                            })
+                            ->formatStateUsing(fn ($state) => filled($state) ? (string) $state : null)
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? (int) $state : null)
+                            ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                if ($state) {
+                                    $po = PartnerOffering::find((int) $state);
+                                    $set('price', (string) ($po?->price ?? 0));
+                                    // اكتب ملخص التفاصيل الذي تريده
+                                    $summary = $po?->package?->details ?? null; // عدِّل إن كان لديك عمود آخر
+                                    $set('details', $summary ? (string) $summary : null);
+                                } else {
+                                    $set('price', null);
+                                    $set('details', null);
+                                }
+                            }),
+
+                        // 4) Price — render only after an offer is chosen
+                        TextInput::make('price')
+                            ->label('السعر')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->hidden(fn (Get $get) => blank($get('partner_offering_id'))),
+
+                        // 5) Details — render only after an offer is chosen
+                        Textarea::make('details')
+                            ->label('تفاصيل التغطية / الخدمات في العرض')
+                            ->rows(4)
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->hidden(fn (Get $get) => blank($get('partner_offering_id'))),
+                                                ])
+                                                ->defaultItems(1)
+                                                ->minItems(1)
+                                                ->columns(2)
+                                                ->reorderable(false)
+                                                ->cloneable(false)
+                                        ])->columns(1),
 
                 // 5) الباقات (متعددة) + خدمات إضافية
                 Step::make('الباقات والخدمات')->schema([
@@ -297,6 +454,12 @@ class AffiliationWizard extends Page implements HasForms
                 'email'=> $this->email,
                 'password' => Hash::make($this->password),
             ]);
+            $memberRole = Role::firstOrCreate(
+                ['name' => 'منتسب', 'guard_name' => $guard],
+                []
+            );
+
+            $user->assignRole($memberRole);
 
             // 2) الملف الشخصي
             $user->userProfiles()->create([

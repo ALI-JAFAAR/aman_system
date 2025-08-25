@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Organization extends Model
-{
+class Organization extends Model{
+
     use HasFactory;
     use SoftDeletes;
 
@@ -21,63 +21,51 @@ class Organization extends Model
         'next_identity_sequence',
     ];
 
-    protected function casts(): array
-    {
+    protected function casts(): array{
         return [
             'type' => 'App\Enums\OrganizationType',
         ];
     }
 
-    public function organizations()
-    {
+    public function organizations(){
         return $this->hasMany(Organization::class);
     }
 
-    public function organization()
-    {
+    public function organization(){
         return $this->belongsTo(Organization::class);
     }
 
-    public function employees()
-    {
+    public function employees(){
         return $this->hasMany(Employee::class);
     }
 
-    public function userAffiliations()
-    {
+    public function userAffiliations(){
         return $this->hasMany(UserAffiliation::class);
     }
 
-    public function partnerOfferings()
-    {
+    public function partnerOfferings(){
         return $this->hasMany(PartnerOffering::class);
     }
 
-    public function contracts()
-    {
+    public function contracts(){
         return $this->hasMany(Contract::class);
     }
 
-    public function reconciliations()
-    {
+    public function reconciliations(){
         return $this->hasMany(Reconciliation::class);
     }
 
-    public function projects()
-    {
+    public function projects(){
         return $this->hasMany(Project::class);
     }
 
-    public function organizationSpecializations()
-    {
+    public function organizationSpecializations(){
         return $this->hasMany(OrganizationSpecialization::class);
     }
-    public function getLogoUrlAttribute(): ?string
-   {
+    public function getLogoUrlAttribute(): ?string{
        return $this->getFirstMediaUrl('logo') ?: null;
-   }
-    public function registerMediaCollections(): void
-    {
+    }
+    public function registerMediaCollections(): void{
         $this->addMediaCollection('logo')
             ->useDisk('public')
             ->singleFile();

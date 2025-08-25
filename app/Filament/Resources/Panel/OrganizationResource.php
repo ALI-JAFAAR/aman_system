@@ -20,8 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\Panel\OrganizationResource\Pages;
 use App\Filament\Resources\Panel\OrganizationResource\RelationManagers;
 
-class OrganizationResource extends Resource
-{
+class OrganizationResource extends Resource{
     protected static ?string $model = Organization::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -30,23 +29,20 @@ class OrganizationResource extends Resource
 
     protected static ?string $navigationGroup = 'Admin';
 
-    public static function getModelLabel(): string
-    {
+    public static function getModelLabel(): string{
         return __('crud.organizations.itemTitle');
     }
 
-    public static function getPluralModelLabel(): string
-    {
+    public static function getPluralModelLabel(): string{
         return __('crud.organizations.collectionTitle');
     }
 
-    public static function getNavigationLabel(): string
-    {
+    public static function getNavigationLabel(): string{
         return __('crud.organizations.collectionTitle');
     }
 
-    public static function form(Form $form): Form
-    {
+    public static function form(Form $form): Form{
+
         return $form->schema([
             Section::make()->schema([
                 Grid::make(['default' => 1])->schema([
@@ -70,6 +66,8 @@ class OrganizationResource extends Resource
                             'insurance_company'       => 'شركة تأمين',
                             'law_firm'                => 'مكتب محاماة',
                             'platform'                => 'منصة أمان',
+                            'organization'            => 'مؤسسات',
+                            'guild'                   => 'نقابة',
                         ]),
 
                     RichEditor::make('details')
@@ -99,8 +97,7 @@ class OrganizationResource extends Resource
         ]);
     }
 
-    public static function table(Table $table): Table
-    {
+    public static function table(Table $table): Table{
         return $table
             ->poll('60s')
             ->columns([
@@ -130,7 +127,6 @@ class OrganizationResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-
                     Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
@@ -138,13 +134,11 @@ class OrganizationResource extends Resource
             ->defaultSort('id', 'desc');
     }
 
-    public static function getRelations(): array
-    {
+    public static function getRelations(): array{
         return [];
     }
 
-    public static function getPages(): array
-    {
+    public static function getPages(): array{
         return [
             'index' => Pages\ListOrganizations::route('/'),
             'create' => Pages\CreateOrganization::route('/create'),
@@ -153,8 +147,7 @@ class OrganizationResource extends Resource
         ];
     }
 
-    public static function getEloquentQuery(): Builder
-    {
+    public static function getEloquentQuery(): Builder{
         return parent::getEloquentQuery()->withoutGlobalScopes([
             SoftDeletingScope::class,
         ]);

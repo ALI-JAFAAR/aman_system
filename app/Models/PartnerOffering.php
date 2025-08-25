@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class PartnerOffering extends Model
-{
+class PartnerOffering extends Model{
     use HasFactory;
     use SoftDeletes;
 
@@ -21,8 +20,8 @@ class PartnerOffering extends Model
         'partner_must_fill_number',
     ];
 
-    public function organization()
-    {
+//    protected $casts = ['contract_end' => 'datetime'];
+    public function organization(){
         return $this->belongsTo(Organization::class);
     }
 
