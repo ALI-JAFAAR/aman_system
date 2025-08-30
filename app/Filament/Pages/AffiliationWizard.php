@@ -41,6 +41,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\HtmlString;
@@ -50,8 +51,7 @@ use Spatie\Permission\PermissionRegistrar;
 use App\Enums\OrganizationType;
 use App\Models\Package;
 use Filament\Forms\Components\Radio;
-class AffiliationWizard extends Page implements HasForms
-{
+class AffiliationWizard extends Page implements HasForms{
     use InteractsWithForms;
     public ?array $data = [];
     protected static ?string $navigationIcon  = 'heroicon-o-rectangle-stack';
@@ -77,9 +77,7 @@ class AffiliationWizard extends Page implements HasForms
     public array   $extra_data          = [];
     public string  $image               = '';
 
-
     public string $employment_sector = 'private';
-
     // موظف مُصدِّر العملية
     public ?int $issuer_employee_id = null;
 
@@ -87,29 +85,24 @@ class AffiliationWizard extends Page implements HasForms
     public ?int $profession_id = null;
     public ?int $specialization_id = null;
     public ?string $notes = null;
-
-
     public array $offerings = [];
-
     public array $service_requests = [];
 
     public bool  $has_family       = false;
     public array $family_members   = [];
     public array $affiliations = [];
 
-
     public bool  $has_related_workers        = false;
     public array $related_workers_existing   = []; // array of user IDs
     public array $related_workers_new        = []; // array of rows: name,email,password
-
 
     // Payment step state (because you are not using a data state path)
     public bool $take_payment_now = false;
     public ?string $payment_method = null;
 // (optional) if you later allow partial payment:
     public ?float $amount_taken_now = null;
-
-    public string $discount_type = 'none';           // none | percent | fixed
+    public string $discount_type = 'none';
+    public ?float $affiliation_fee = 0;// none | percent | fixed
     public ?float $discount_value = 0;               // القيمة: نسبة % أو مبلغ ثابت
     public string $discount_funded_by = 'platform';
     // مجموع ملخص (عرض فقط)
@@ -135,7 +128,6 @@ class AffiliationWizard extends Page implements HasForms
     protected function getFormSchema(): array{
         return [
             Wizard::make([
-
                 Step::make('المعلومات الشخصية والحساب والسكن')->schema([
                         // إنشاء الحساب
                         TextInput::make('name')->label('الاسم الرباعي')->required(),
@@ -154,9 +146,7 @@ class AffiliationWizard extends Page implements HasForms
                         TextInput::make('address_district')->label('القضاء')->required(),
                         TextInput::make('address_subdistrict')->label('الناحية')->required(),
                         TextInput::make('address_details')->label('تفاصيل العنوان')->required(),
-                    ])
-                    ->columns(2),
-
+                    ])->columns(2),
 
                 Step::make('الانتسابات')->schema([
                     // ❶ اختيار القطاع مرة واحدة
@@ -261,6 +251,11 @@ class AffiliationWizard extends Page implements HasForms
                                 ->searchable()->preload()
                                 ->nullable(),
                             DatePicker::make('joined_at')->label('تاريخ الانضمام')->default(now()),
+                            TextInput::make('affiliation_fee')
+                                ->label('رسوم الانتساب (اختياري)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->default(0),
                         ])
                         ->defaultItems(1)
                         ->minItems(1)
@@ -425,6 +420,7 @@ class AffiliationWizard extends Page implements HasForms
                                 ->hidden(fn (Get $get) => blank($get('partner_offering_id'))),
                         ]),
                 ])->columns(1),
+
                 Step::make('الخدمات الإضافية (اختياري)')->schema([
                     Repeater::make('service_requests')
                         ->label('طلبات خدمات إضافية (اختياري) — أضف عنصرًا لكل خدمة تريدها')
@@ -557,6 +553,7 @@ class AffiliationWizard extends Page implements HasForms
                             ->columns(1),
 
                     ])->columns(1),
+
                 Step::make('الملخّص المالي والدفع')->schema([
 
                     Section::make('ملخّص المبالغ المستحقة')
@@ -582,7 +579,7 @@ class AffiliationWizard extends Page implements HasForms
                                         $ids = collect($get('offerings') ?? [])
                                             ->pluck('partner_offering_id')->filter()->values();
                                         $sum = $ids->isNotEmpty()
-                                            ? (float) \App\Models\PartnerOffering::whereIn('id', $ids)->sum('price')
+                                            ? (float) PartnerOffering::whereIn('id', $ids)->sum('price')
                                             : 0;
                                         return number_format($sum, 2).' IQD';
                                     })
@@ -595,8 +592,8 @@ class AffiliationWizard extends Page implements HasForms
                                     ->content(function (Get $get) {
                                         $ids = collect($get('service_requests') ?? [])
                                             ->pluck('service_id')->filter()->values();
-                                        $sum = ($ids->isNotEmpty() && class_exists(\App\Models\Service::class))
-                                            ? (float) \App\Models\Service::whereIn('id', $ids)->sum('base_price')
+                                        $sum = ($ids->isNotEmpty() && class_exists(Service::class))
+                                            ? (float) Service::whereIn('id', $ids)->sum('base_price')
                                             : 0;
                                         return number_format($sum, 2).' IQD';
                                     })
@@ -613,13 +610,13 @@ class AffiliationWizard extends Page implements HasForms
                                         $offerIds = collect($get('offerings') ?? [])
                                             ->pluck('partner_offering_id')->filter()->values();
                                         $offerSum = $offerIds->isNotEmpty()
-                                            ? (float) \App\Models\PartnerOffering::whereIn('id', $offerIds)->sum('price')
+                                            ? (float) PartnerOffering::whereIn('id', $offerIds)->sum('price')
                                             : 0;
 
                                         $serviceIds = collect($get('service_requests') ?? [])
                                             ->pluck('service_id')->filter()->values();
-                                        $serviceSum = ($serviceIds->isNotEmpty() && class_exists(\App\Models\Service::class))
-                                            ? (float) \App\Models\Service::whereIn('id', $serviceIds)->sum('base_price')
+                                        $serviceSum = ($serviceIds->isNotEmpty() && class_exists(Service::class))
+                                            ? (float) Service::whereIn('id', $serviceIds)->sum('base_price')
                                             : 0;
 
                                         return number_format($aff + $offerSum + $serviceSum, 2).' IQD';
@@ -677,13 +674,13 @@ class AffiliationWizard extends Page implements HasForms
                                         $offerIds = collect($get('offerings') ?? [])
                                             ->pluck('partner_offering_id')->filter()->values();
                                         $offerSum = $offerIds->isNotEmpty()
-                                            ? (float) \App\Models\PartnerOffering::whereIn('id', $offerIds)->sum('price')
+                                            ? (float) PartnerOffering::whereIn('id', $offerIds)->sum('price')
                                             : 0;
 
                                         $serviceIds = collect($get('service_requests') ?? [])
                                             ->pluck('service_id')->filter()->values();
-                                        $serviceSum = ($serviceIds->isNotEmpty() && class_exists(\App\Models\Service::class))
-                                            ? (float) \App\Models\Service::whereIn('id', $serviceIds)->sum('base_price')
+                                        $serviceSum = ($serviceIds->isNotEmpty() && class_exists(Service::class))
+                                            ? (float) Service::whereIn('id', $serviceIds)->sum('base_price')
                                             : 0;
 
                                         $subtotal = $aff + $offerSum + $serviceSum;
@@ -713,13 +710,13 @@ class AffiliationWizard extends Page implements HasForms
                                         $offerIds = collect($get('offerings') ?? [])
                                             ->pluck('partner_offering_id')->filter()->values();
                                         $offerSum = $offerIds->isNotEmpty()
-                                            ? (float) \App\Models\PartnerOffering::whereIn('id', $offerIds)->sum('price')
+                                            ? (float) PartnerOffering::whereIn('id', $offerIds)->sum('price')
                                             : 0;
 
                                         $serviceIds = collect($get('service_requests') ?? [])
                                             ->pluck('service_id')->filter()->values();
-                                        $serviceSum = ($serviceIds->isNotEmpty() && class_exists(\App\Models\Service::class))
-                                            ? (float) \App\Models\Service::whereIn('id', $serviceIds)->sum('base_price')
+                                        $serviceSum = ($serviceIds->isNotEmpty() && class_exists(Service::class))
+                                            ? (float) Service::whereIn('id', $serviceIds)->sum('base_price')
                                             : 0;
 
                                         $subtotal = $aff + $offerSum + $serviceSum;
@@ -771,6 +768,7 @@ class AffiliationWizard extends Page implements HasForms
                         ]),
 
                 ])->columns(1),
+
             ]),
         ];
     }
@@ -841,13 +839,13 @@ class AffiliationWizard extends Page implements HasForms
     }
     public function submit(): void{
         $this->validate([
-            // الحساب
+            // account
             'email'    => ['required','email','unique:users,email'],
             'password' => ['required','string','min:8'],
             'name'     => ['required','string'],
             'phone'    => ['required','string'],
 
-            // العنوان
+            // address
             'address_province'    => ['required','string','max:255'],
             'address_district'    => ['required','string','max:255'],
             'address_subdistrict' => ['required','string','max:255'],
@@ -855,13 +853,13 @@ class AffiliationWizard extends Page implements HasForms
             'extra_data'          => ['nullable','array'],
             'image'               => ['nullable','string','max:255'],
 
-            // موظف مُصدر
+            // Affiliation source
             'issuer_employee_id'  => ['required','integer','exists:employees,id'],
 
-            // القطاع
+            // sector
             'employment_sector'   => ['required','in:public,private'],
 
-            // انتسابات
+            // affiliation
             'affiliations'                     => ['required','array','min:1'],
             'affiliations.*.kind'              => ['nullable','in:federation,institution'],
             'affiliations.*.federation_id'     => ['nullable','integer','exists:organizations,id'],
@@ -872,15 +870,15 @@ class AffiliationWizard extends Page implements HasForms
             'affiliations.*.affiliation_fee'   => ['nullable','numeric','min:0'],
             'affiliations.*.joined_at'         => ['nullable','date'],
 
-            // باقات/عروض
+            // offers / packages
             'offerings'                       => ['required','array','min:1'],
             'offerings.*.partner_offering_id' => ['required','integer','exists:partner_offerings,id'],
 
-            // خدمات (اختياري)
+            // services
             'service_requests'              => ['nullable','array'],
             'service_requests.*.service_id' => ['required','integer','exists:services,id'],
 
-            // العائلة
+            // family
             'has_family'                => ['boolean'],
             'family_members'            => ['nullable','array'],
             'family_members.*.name'     => ['required_with:family_members','string'],
@@ -888,19 +886,19 @@ class AffiliationWizard extends Page implements HasForms
             'family_members.*.email'    => ['required_with:family_members','email','unique:users,email'],
             'family_members.*.password' => ['required_with:family_members','string','min:6'],
 
-            // عمّال مرتبطون
-            'has_related_workers'      => ['boolean'],
-            'related_workers_existing' => ['nullable','array'],
-            'related_workers_existing.*' => ['integer','exists:users,id'],
-            'related_workers_new'      => ['nullable','array'],
+            //  Workers
+            'has_related_workers'            => ['boolean'],
+            'related_workers_existing'       => ['nullable','array'],
+            'related_workers_existing.*'     => ['integer','exists:users,id'],
+            'related_workers_new'            => ['nullable','array'],
             'related_workers_new.*.name'     => ['required_with:related_workers_new','string'],
             'related_workers_new.*.email'    => ['required_with:related_workers_new','email','unique:users,email'],
             'related_workers_new.*.password' => ['required_with:related_workers_new','string','min:6'],
 
-            // الدفع
-            'take_payment_now'  => ['boolean'],
-            'payment_method'    => ['nullable','in:cash,pos,zaincash,bank'],
-            'amount_taken_now'  => ['nullable','numeric','min:0'],
+            // payment
+            'take_payment_now'   => ['boolean'],
+            'payment_method'     => ['nullable','in:cash,pos,zaincash,bank'],
+            'amount_taken_now'   => ['nullable','numeric','min:0'],
             'discount_type'      => ['required','in:none,percent,fixed'],
             'discount_value'     => ['nullable','numeric','min:0'],
             'discount_funded_by' => ['required_if:discount_type,percent,fixed','in:platform,partner,host,shared'],
@@ -941,7 +939,7 @@ class AffiliationWizard extends Page implements HasForms
                 ['user_id' => $user->id, 'balance' => 0, 'currency' => 'IQD']
             );
 
-            // 2) جهّز Payload الانتسابات
+            // 2) prepare Payload affiliation
             $affiliationsPayload = [];
             foreach ($this->affiliations as $row) {
                 $orgId = null;
@@ -964,7 +962,8 @@ class AffiliationWizard extends Page implements HasForms
                     'affiliation_fee' => (float) ($row['affiliation_fee'] ?? 0),
                     'joined_at'       => $row['joined_at'] ?? now()->toDateString(),
                     'status'          => 'pending',
-                    // يمكن لاحقًا تمرير profession/specialization هنا إذا كانت مربوطة لكل انتساب
+                    'profession_id'     => (int) ($row['profession_id'] ?? 0),
+                    'specialization_id' => $row['specialization_id'] ?? null,
                 ];
             }
 
@@ -979,7 +978,7 @@ class AffiliationWizard extends Page implements HasForms
                 }
             }
 
-            // 4) Payload الخدمات + إنشاء UserService مبسّط (اختياري)
+            // 4) Payload services + create UserService  (optional)
             $servicesPayload = [];
             foreach ($this->service_requests as $sr) {
                 $svc = Service::find($sr['service_id'] ?? null);
@@ -992,13 +991,19 @@ class AffiliationWizard extends Page implements HasForms
                     'price'       => $price,
                 ];
 
-                if (class_exists(UserService::class)) {
-                    $user->userServices()->create([
-                        'service_id' => $svc->id,
-                        'status'     => 'applied',
-                        'applied_at' => now(),
-                    ]);
-                }
+                $currentEmployeeId = Employee::where('user_id', auth()->id())->value('id');
+
+                $user->userServices()->create([
+                    'service_id'   => $svc->id,
+                    'status'       => 'applied',
+                    'submitted_at' => now(),
+                    'user_id'      => $user->id,
+                    'notes'        => '',                 // <- use notes
+                    'processed_by' => $currentEmployeeId, // <- use processed_by (employee id)
+                    'form_data'    => $sr['fields'] ?? [],// <- persist dynamic fields
+                ]);
+
+
             }
 
             // 5) العائلة: تُنشأ سجلات users مباشرة مع parent_id + family_relation
@@ -1095,7 +1100,7 @@ class AffiliationWizard extends Page implements HasForms
 
             /** @var \App\Services\AffiliationPostingService $svc */
             $svc = app(AffiliationPostingService::class);
-            $invoice = $svc->post($payload, (int) $this->issuer_employee_id, (int) $user->id);
+            $invoice = $svc->post($payload, (int) $this->issuer_employee_id, (int) $user->id,$user);
 
             DB::commit();
 

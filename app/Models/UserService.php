@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class UserService extends Model
-{
+class UserService extends Model{
+
     use HasFactory;
     use SoftDeletes;
 
@@ -23,28 +23,30 @@ class UserService extends Model
         'service_id',
     ];
 
-    public function user()
-    {
+    protected $casts = [
+        'form_data'     => 'array',
+        'response_data' => 'array',
+        'submitted_at'  => 'datetime',
+        'processed_at'  => 'datetime',
+    ];
+
+    public function user(){
         return $this->belongsTo(User::class);
     }
 
-    public function service()
-    {
+    public function service(){
         return $this->belongsTo(Service::class);
     }
 
-    public function employee()
-    {
+    public function employee(){
         return $this->belongsTo(Employee::class);
     }
 
-    public function vehicles()
-    {
+    public function vehicles(){
         return $this->hasMany(Vehicle::class);
     }
 
-    public function healthAnswers()
-    {
+    public function healthAnswers(){
         return $this->hasMany(HealthAnswer::class);
     }
 }

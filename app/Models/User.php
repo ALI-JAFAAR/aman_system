@@ -9,8 +9,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Authenticatable
-{
+class User extends Authenticatable{
     use HasRoles;
     use HasFactory;
     use Notifiable;
@@ -77,4 +76,12 @@ class User extends Authenticatable
     public function administrativeRecords(){
         return $this->hasMany(AdministrativeRecord::class);
     }
+
+    public function invoices(){
+        return $this->hasOne(Invoice::class);
+    }
+    public function payments(){
+        return $this->hasMany(Payment::class);
+    }
+
 }

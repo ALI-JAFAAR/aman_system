@@ -24,7 +24,6 @@ class OrganizationSpecializationResource extends Resource{
             Select::make('specialization_id')->label('الاختصاص')->relationship('specialization','name')->searchable()->preload()->required(),
         ]);
     }
-
     public static function table(Table $table): Table
     {
         return $table->columns([

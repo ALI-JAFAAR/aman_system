@@ -11,20 +11,17 @@ class UserAffiliation extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['status', 'organization_id', 'user_id', 'joined_at'];
+    protected $fillable = ['status', 'organization_id', 'user_id', 'joined_at','identity_number'];
 
-    public function organization()
-    {
+    public function organization(){
         return $this->belongsTo(Organization::class);
     }
 
-    public function user()
-    {
+    public function user(){
         return $this->belongsTo(User::class);
     }
 
-    public function userProfessions()
-    {
+    public function userProfessions(){
         return $this->hasMany(UserProfession::class);
     }
 }

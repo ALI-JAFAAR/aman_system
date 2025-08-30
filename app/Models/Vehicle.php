@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Vehicle extends Model
-{
+class Vehicle extends Model{
     use HasFactory;
     use SoftDeletes;
 
@@ -20,8 +19,7 @@ class Vehicle extends Model
         'notes',
     ];
 
-    public function userService()
-    {
+    public function userService(){
         return $this->belongsTo(UserService::class);
     }
 }

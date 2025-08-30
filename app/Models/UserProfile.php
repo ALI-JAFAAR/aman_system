@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class UserProfile extends Model
-{
+class UserProfile extends Model{
     use HasFactory;
     use SoftDeletes;
 
@@ -24,14 +23,13 @@ class UserProfile extends Model
         'address_subdistrict',
         'address_details',
         'extra_data',
-        'image',
+        'image'
     ];
     protected $casts = [
         'date_of_birth' => 'date',
         'extra_data'    => 'array',
     ];
-    public function user()
-    {
+    public function user(){
         return $this->belongsTo(User::class);
     }
 }

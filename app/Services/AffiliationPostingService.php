@@ -2,11 +2,18 @@
 
 namespace App\Services;
 
-use App\Models\{
-    User, Employee, Organization, UserAffiliation, UserOffering,
-    PartnerOffering, OfferingDistribution, LedgerEntry,
-    Invoice, InvoiceItem, Payment
-};
+use App\Models\{User,
+    Employee,
+    Organization,
+    UserAffiliation,
+    UserOffering,
+    PartnerOffering,
+    OfferingDistribution,
+    LedgerEntry,
+    Invoice,
+    InvoiceItem,
+    Payment,
+    UserProfession};
 use Illuminate\Support\Facades\DB;
 
 class AffiliationPostingService
@@ -36,8 +43,8 @@ class AffiliationPostingService
      * - payment_method: cash|pos|zaincash|bank
      * - paid_amount: number
      */
-    public function post(array $payload, int $issuerEmployeeId, int $userId): Invoice{
-        return DB::transaction(function () use ($payload, $issuerEmployeeId, $userId) {
+    public function post(array $payload, int $issuerEmployeeId, int $userId,$user): Invoice{
+        return DB::transaction(function () use ($user, $payload, $issuerEmployeeId, $userId) {
 
             $issuer      = Employee::with('organization')->findOrFail($issuerEmployeeId);
             $issuerOrgId = $issuer->organization_id;
@@ -67,9 +74,15 @@ class AffiliationPostingService
                 // رقم هوية الانتساب من المؤسسة
                 if ($org = Organization::find($row['organization_id'])) {
                     $identityNumber = $this->nextOrgIdentity($org);
-                    $aff->update(['identity_number' => $identityNumber]);
+                    $aff->identity_number = $identityNumber;
+                    $aff->save();
                 }
-
+                UserProfession::create([
+                    'user_affiliation_id' => $aff->id,
+                    'profession_id'       => $row['profession_id'],
+                    'specialization_id'   => $row['specialization_id'] ?? null,
+                    'status'              => 'active',
+                ]);
                 $fee = (float)($row['affiliation_fee'] ?? 0);
                 if ($fee > 0) {
                     $subtotal += $fee;
@@ -115,16 +128,16 @@ class AffiliationPostingService
                 if ((int)$po->partner_must_fill_number === 1) {
                 } else {
                     $uo->platform_generated_number = $this->nextOrgIdentity($po->organization, 'POL');
-                    if ((int)$po->auto_approve === 1) {
-                        $uo->status      = 'active';
-                        $uo->approved_at = now();
+
+                    if ((int) $po->auto_approve === 1) {
+                        $uo->status       = 'active';
+                        $uo->activated_at = now();
                     }
                     $uo->save();
                 }
 
                 // الجهة المضيفة
-                $hostOrgId = $row['host_organization_id']
-                    ?? UserAffiliation::where('user_id', $userId)->value('organization_id');
+                $hostOrgId = $row['host_organization_id'] ?? UserAffiliation::where('user_id', $userId)->value('organization_id');
 
                 // التوزيع
                 [$partnerPct, $platformPct, $hostPctBase] = $this->resolveDistribution($po, $hostOrgId);
@@ -311,8 +324,7 @@ class AffiliationPostingService
     }
 
     /** حساب قيمة الخصم */
-    protected function calcDiscount(string $type, float $value, float $base): float
-    {
+    protected function calcDiscount(string $type, float $value, float $base): float{
         return match ($type) {
             'percent' => round($base * max(0, min($value, 100)) / 100, 2),
             'fixed'   => round(max(0, min($value, $base)), 2),
@@ -321,8 +333,7 @@ class AffiliationPostingService
     }
 
     /** إيجاد توزيع العرض (خاص بالجهة إن وُجد، وإلا العام) */
-    protected function resolveDistribution(PartnerOffering $po, ?int $hostOrgId): array
-    {
+    protected function resolveDistribution(PartnerOffering $po, ?int $hostOrgId): array{
         // توزيع خاص بالجهة
         if ($hostOrgId) {
             $spec = OfferingDistribution::where('partner_offering_id', $po->id)
@@ -357,8 +368,7 @@ class AffiliationPostingService
     }
 
     /** هل الموظّف تابع لنفس الجهة (أو قريب هرميًا)؟ */
-    protected function shouldEnableHostShare(?int $issuerOrgId, ?int $hostOrgId): bool
-    {
+    protected function shouldEnableHostShare(?int $issuerOrgId, ?int $hostOrgId): bool{
         if (!$issuerOrgId || !$hostOrgId) return false;
         if ($issuerOrgId === $hostOrgId) return true;
 
@@ -371,8 +381,7 @@ class AffiliationPostingService
     }
 
     /** توليد رقم متسلسل داخل الجهة: CODE-000001 (أو PREFIX-000001) */
-    public function nextOrgIdentity(Organization $org, ?string $prefix = null, int $pad = 6): string
-    {
+    public function nextOrgIdentity(Organization $org, ?string $prefix = null, int $pad = 6): string{
         return DB::transaction(function () use ($org, $prefix, $pad) {
             $o   = Organization::lockForUpdate()->find($org->id);
             $seq = (int)($o->next_identity_sequence ?? 0) + 1;
@@ -385,8 +394,7 @@ class AffiliationPostingService
     }
 
     /** توليد رقم فاتورة: INV-YYYY-000001 */
-    protected function nextInvoiceNumber(): string
-    {
+    protected function nextInvoiceNumber(): string{
         $prefix = 'INV-' . now()->format('Y');
         $last = Invoice::where('number', 'like', $prefix . '%')
             ->orderByDesc('id')->value('number');
