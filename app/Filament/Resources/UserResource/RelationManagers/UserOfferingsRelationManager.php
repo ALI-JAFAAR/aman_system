@@ -15,8 +15,7 @@ class UserOfferingsRelationManager extends RelationManager
     protected static string $relationship = 'userOfferings';
     protected static ?string $recordTitleAttribute = 'package.name';
 
-    public function table(Table $table): Table
-    {
+    public function table(Table $table): Table{
         return $table
             ->columns([
                 TextColumn::make('package.name')->label('الباقة'),

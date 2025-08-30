@@ -96,8 +96,8 @@ class UserResource extends Resource
         ]);
     }
 
-    public static function table(Table $table): Table
-    {
+    public static function table(Table $table): Table{
+
         return $table->columns([
             TextColumn::make('id')->label('#'),
             TextColumn::make('email')->label('البريد الإلكتروني')->sortable()->searchable(),
@@ -114,8 +114,7 @@ class UserResource extends Resource
         ]);
     }
 
-    public static function getRelations(): array
-    {
+    public static function getRelations(): array{
         return [
             ProfileRelationManager::class,
             AffiliationsRelationManager::class,

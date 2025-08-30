@@ -11,10 +11,17 @@ class Service extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['code', 'name', 'description', 'form_schema'];
+    protected $fillable = ['code', 'name', 'description', 'request_schema','is_active','base_price'];
 
-    public function userServices()
-    {
+
+    protected $casts = [
+        'request_schema' => 'array',
+    ];
+
+    public function setRequestSchemaAttribute($value): void{
+        $this->attributes['request_schema'] = $value ? json_encode($value, JSON_UNESCAPED_UNICODE) : null;
+    }
+    public function userServices(){
         return $this->hasMany(UserService::class);
     }
 }

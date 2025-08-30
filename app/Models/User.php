@@ -15,7 +15,7 @@ class User extends Authenticatable
     use HasFactory;
     use Notifiable;
     use SoftDeletes;
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = ['name', 'email', 'password','parent_id', 'family_relation'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array{
@@ -23,6 +23,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function parent(){
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    // All dependents of this worker
+    public function dependents(){
+        return $this->hasMany(User::class, 'parent_id');
+    }
+
+    public function relatedWorkers(){
+        // users this user relates to
+        return $this->belongsToMany(User::class, 'related_workers', 'user_id', 'related_user_id');
+    }
+
+    public function relatedToMe(){
+        // users that relate to this user
+        return $this->belongsToMany(User::class, 'related_workers', 'related_user_id', 'user_id');
     }
     public function employees(){
         return $this->hasMany(Employee::class);

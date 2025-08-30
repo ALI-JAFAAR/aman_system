@@ -22,13 +22,17 @@ class ProjectWorker extends Model
         'notes',
     ];
 
-    public function project()
-    {
+/**
+ * Define a many-to-one relationship with the Project model
+ * This method indicates that the current model belongs to a Project model
+ *
+ * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+ */
+    public function project(){
         return $this->belongsTo(Project::class);
     }
 
-    public function user()
-    {
+    public function user(){
         return $this->belongsTo(User::class);
     }
 }

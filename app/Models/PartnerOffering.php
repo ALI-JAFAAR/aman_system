@@ -25,18 +25,19 @@ class PartnerOffering extends Model{
         return $this->belongsTo(Organization::class);
     }
 
-    public function package()
-    {
+    public function package(){
         return $this->belongsTo(Package::class);
     }
 
-    public function userOfferings()
-    {
+    public function userOfferings(){
         return $this->hasMany(UserOffering::class);
     }
 
-    public function contracts()
-    {
+    public function contracts(){
         return $this->hasMany(Contract::class);
     }
+    public function distribution(){
+        return $this->hasOne(\App\Models\OfferingDistribution::class);
+    }
+
 }
