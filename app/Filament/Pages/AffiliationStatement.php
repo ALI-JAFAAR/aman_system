@@ -9,9 +9,11 @@ use Filament\Pages\Page;
 
 class AffiliationStatement extends Page
 {
-    protected static ?string $navigationGroup = 'التقارير المالية';
+    protected static ?string $navigationGroup = 'الفوترة والمالية';
     protected static ?string $navigationLabel = 'كشف انتسابات لجهة';
+    protected static ?int    $navigationSort  = 50;
     protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-list';
+
     protected static string $view = 'filament.pages.affiliation-statement';
 
     // عوامل التصفية (binding مع الواجهة)

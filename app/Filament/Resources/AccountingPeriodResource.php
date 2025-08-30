@@ -15,9 +15,11 @@ use Illuminate\Support\Facades\DB;
 class AccountingPeriodResource extends Resource
 {
     protected static ?string $model = AccountingPeriod::class;
-    protected static ?string $navigationGroup = 'الحسابات';
+    protected static ?string $navigationGroup = 'المحاسبة والتسويات';
     protected static ?string $navigationLabel = 'الفترات المحاسبية';
+    protected static ?int    $navigationSort  = 20;
     protected static ?string $navigationIcon  = 'heroicon-o-calendar-days';
+
 
     public static function form(Form $form): Form
     {

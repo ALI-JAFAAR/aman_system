@@ -23,7 +23,8 @@ class UserProfile extends Model{
         'address_subdistrict',
         'address_details',
         'extra_data',
-        'image'
+        'image',
+        'identity_number'
     ];
     protected $casts = [
         'date_of_birth' => 'date',

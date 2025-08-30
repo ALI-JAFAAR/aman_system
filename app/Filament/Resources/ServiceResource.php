@@ -26,11 +26,13 @@ use Filament\Tables\Columns\ToggleColumn;
 class ServiceResource extends Resource{
     protected static ?string $model = Service::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-queue-list';
+    protected static ?string $navigationGroup = 'الإدارة';
     protected static ?string $navigationLabel = 'الخدمات';
+    protected static ?int    $navigationSort  = 20;
+    protected static ?string $navigationIcon  = 'heroicon-o-wrench-screwdriver';
+
     protected static ?string $modelLabel       = 'خدمة';
     protected static ?string $pluralModelLabel = 'الخدمات';
-    protected static ?int    $navigationSort   = 16;
 
     public static function form(Form $form): Form{
 

@@ -22,15 +22,15 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\Panel\PartnerOfferingResource\Pages;
 use App\Filament\Resources\Panel\PartnerOfferingResource\RelationManagers;
 
-class PartnerOfferingResource extends Resource
-{
+class PartnerOfferingResource extends Resource{
+
     protected static ?string $model = PartnerOffering::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'التأمينات';
+    protected static ?string $navigationLabel = 'عروض الشركاء';
+    protected static ?int    $navigationSort  = 20;
+    protected static ?string $navigationIcon  = 'heroicon-o-tag';
 
-    protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationGroup = 'Admin';
 
     public static function getModelLabel(): string
     {

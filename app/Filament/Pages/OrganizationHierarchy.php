@@ -6,11 +6,12 @@ use Filament\Pages\Page;
 use App\Models\Organization;
 
 class OrganizationHierarchy extends Page{
-    protected static ?string $navigationIcon  = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'الهيكل الهرمي';
     protected static ?string $navigationGroup = 'الإدارة';
+    protected static ?string $navigationLabel = 'الهيكل الهرمي';
+    protected static ?int    $navigationSort  = 90;
+    protected static ?string $navigationIcon  = 'heroicon-o-rectangle-group';
+
     protected static string $view = 'filament.pages.organization-hierarchy';
-    protected static ?int $navigationSort = 30;
 
     public array $tree = [];
 

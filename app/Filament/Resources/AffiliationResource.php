@@ -21,9 +21,11 @@ class AffiliationResource extends Resource
 
     protected static ?string $navigationGroup = 'الانتساب';
     protected static ?string $navigationLabel = 'سجلّ الانتسابات';
+    protected static ?int    $navigationSort  = 20;
+    protected static ?string $navigationIcon  = 'heroicon-o-users';
+
     protected static ?string $pluralLabel     = 'سجلّ الانتسابات';
     protected static ?string $modelLabel      = 'انتساب';
-    protected static ?string $navigationIcon  = 'heroicon-o-users';
 
     /** Limit to guilds/unions/organizations */
     public static function getEloquentQuery(): Builder

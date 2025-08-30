@@ -1,46 +1,41 @@
 <?php
+
 namespace App\Services;
 
-use App\Models\InvoiceItem;
 use Illuminate\Support\Facades\DB;
 
-class ReconciliationTotals
-{
-    public static function forPartner(int $orgId, string $from, string $to): array
-    {
-        // join via user_offerings -> partner_offerings
-        $q = InvoiceItem::query()
-            ->join('invoices as inv', 'inv.id', '=', 'invoice_items.invoice_id')
-            ->join('user_offerings as uo', function ($j) {
-                $j->on('uo.id', '=', 'invoice_items.reference_id')
-                    ->where('invoice_items.reference_type', '=', \App\Models\UserOffering::class);
-            })
+class ReconciliationTotals{
+    public static function forPartner(int $orgId, string $from, string $to): array{
+        $row = DB::table('invoice_items as ii')
+            ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
+            ->where('ii.item_type', 'offering')
+            ->whereBetween(DB::raw('DATE(inv.issued_at)'), [$from, $to])
+            ->join('user_offerings as uo', 'uo.id', '=', 'ii.reference_id')
             ->join('partner_offerings as po', 'po.id', '=', 'uo.partner_offering_id')
-            ->where('invoice_items.item_type', 'offering')
             ->where('po.organization_id', $orgId)
-            ->whereBetween(DB::raw('DATE(inv.issued_at)'), [$from, $to]);
+            ->selectRaw('
+                COALESCE(SUM(ii.line_total),0)   as total_gross_amount,
+                COALESCE(SUM(ii.platform_share),0) as total_platform_share,
+                COALESCE(SUM(ii.partner_share),0)  as total_partner_share,
+                0 as total_organization_share
+            ')->first();
 
-        return [
-            'total_gross_amount'     => (float) $q->sum('invoice_items.line_total'),
-            'total_platform_share'   => (float) $q->sum('invoice_items.platform_share'),
-            'total_partner_share'    => (float) $q->sum('invoice_items.partner_share'),
-            'total_organization_share'=> 0.0, // ليس لها معنى في تسوية الشريك
-        ];
+        return (array) $row;
     }
 
-    public static function forHost(int $orgId, string $from, string $to): array
-    {
-        $q = InvoiceItem::query()
-            ->join('invoices as inv', 'inv.id', '=', 'invoice_items.invoice_id')
-            ->where('invoice_items.item_type', 'offering')
-            ->where('invoice_items.organization_id', $orgId)
-            ->whereBetween(DB::raw('DATE(inv.issued_at)'), [$from, $to]);
+    public static function forHost(int $orgId, string $from, string $to): array{
+        $row = DB::table('invoice_items as ii')
+            ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
+            ->where('ii.item_type', 'offering')
+            ->whereBetween(DB::raw('DATE(inv.issued_at)'), [$from, $to])
+            ->where('ii.organization_id', $orgId) // host org
+            ->selectRaw('
+                COALESCE(SUM(ii.line_total),0)   as total_gross_amount,
+                COALESCE(SUM(ii.platform_share),0) as total_platform_share,
+                COALESCE(SUM(ii.host_share),0)     as total_organization_share,
+                0 as total_partner_share
+            ')->first();
 
-        return [
-            'total_gross_amount'      => (float) $q->sum('invoice_items.line_total'),
-            'total_platform_share'    => (float) $q->sum('invoice_items.platform_share'),
-            'total_partner_share'     => (float) $q->sum('invoice_items.partner_share'),
-            'total_organization_share'=> (float) $q->sum('invoice_items.host_share'),
-        ];
+        return (array) $row;
     }
 }

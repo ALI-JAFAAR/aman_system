@@ -1,88 +1,89 @@
 <?php
+// App/Services/ReconciliationBuilder.php
+
 namespace App\Services;
 
-use App\Models\{Reconciliation, ReconciliationEntry, LedgerEntry};
+use App\Models\{
+    Reconciliation, ReconciliationEntry, LedgerEntry,
+    Contract, Employee
+};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ReconciliationBuilder
 {
     /**
-     * $kind: 'partner' or 'host'
+     * $kind: 'host' لتسوية الجهة المضيفة، أو 'partner' لتسوية شركة التأمين.
      */
-    public function build(string $kind, int $organizationId, string $from, string $to, ?int $contractId = null): Reconciliation
+    public function build(string $kind, int $organizationId, string $from, string $to): Reconciliation
     {
-        return DB::transaction(function () use ($kind, $organizationId, $from, $to, $contractId) {
+        return DB::transaction(function () use ($kind, $organizationId, $from, $to) {
 
-            // 1) Compute totals based on kind
+            // 1) اختر العقد الفعّال تلقائيًا
+            $activeContract = Contract::activeForOrganization($organizationId);
+            if (! $activeContract) {
+                throw ValidationException::withMessages([
+                    'organization_id' => 'لا يوجد عقد فعّال لهذه الجهة (contract_end يجب أن يكون أكبر من اليوم).',
+                ]);
+            }
+
+            // 2) موظف المنصّة الحالي
+            $employeeId = Employee::where('user_id', Auth::id())->value('id'); // قد يكون null إذا لم تربط الموظفين بالمستخدمين
+
+            // 3) احسب المجاميع بطريقتك الحالية
             $totals = $kind === 'partner'
                 ? ReconciliationTotals::forPartner($organizationId, $from, $to)
                 : ReconciliationTotals::forHost($organizationId, $from, $to);
 
-            // 2) Create header
+            // 4) أنشئ رأس التسوية
             $rec = Reconciliation::create([
-                'organization_id'           => $organizationId,
-                'contract_id'               => $contractId,
-                'period_start'              => $from,
-                'period_end'                => $to,
-                'total_gross_amount'        => $totals['total_gross_amount'] ?? 0,
-                'total_platform_share'      => $totals['total_platform_share'] ?? 0,
-                'total_organization_share'  => $totals['total_organization_share'] ?? 0,
-                'total_partner_share'       => $totals['total_partner_share'] ?? 0,
-                'status'                    => 'draft',
-                'platform_reconciled_at'    => null,
-                'platform_reconciled_by'    => null,
-                'partner_reconciled_by'     => null,
+                'organization_id'          => $organizationId,
+                'contract_id'              => $activeContract->id,     // تلقائي
+                'period_start'             => $from,
+                'period_end'               => $to,
+                'total_gross_amount'       => $totals['total_gross_amount']       ?? 0,
+                'total_platform_share'     => $totals['total_platform_share']     ?? 0,
+                'total_organization_share' => $totals['total_organization_share'] ?? 0,
+                'total_partner_share'      => $totals['total_partner_share']      ?? 0,
+                'status'                   => 'draft',
+                'platform_reconciled_at'   => null,
+                'platform_reconciled_by'   => $employeeId,  // يفضّل أن يكون nullable في الداتابيس
+                'partner_reconciled_by'    => null,
             ]);
 
-            // 3) Attach candidate ledger entries (not already reconciled)
-            $base = LedgerEntry::query()
-                ->when($kind === 'partner',
-                    fn($q) => $q->forPartnerOrg($organizationId),
-                    fn($q) => $q->forHostOrg($organizationId)
-                )
-                ->whereBetween('posted_at', [$from.' 00:00:00', $to.' 23:59:59'])
-                ->unreconciled()
-                ->orderBy('posted_at')
-                ->get(['ledger_entries.id']);
+            // 5) اجلب القيود غير المُسوَّاة ضمن الفترة واربطها (نفس منطقك الحالي)
+            $entries = $this->entriesQuery($kind, $organizationId, $from, $to)->get();
 
-            foreach ($base as $e) {
+            foreach ($entries as $le) {
                 ReconciliationEntry::create([
                     'reconciliation_id' => $rec->id,
-                    'ledger_entry_id'   => $e->id,
+                    'ledger_entry_id'   => $le->id,
                 ]);
             }
 
-            return $rec->load(['organization','reconciliationEntries.ledgerEntry']);
+            return $rec;
         });
     }
 
-    public function markPlatformReconciled(Reconciliation $rec, int $employeeId): void
+    /**
+     * مثال لاستعلام القيود حسب النوع.
+     */
+    protected function entriesQuery(string $kind, int $organizationId, string $from, string $to)
     {
-        $rec->update([
-            'status'                 => 'platform_reconciled',
-            'platform_reconciled_at' => now(),
-            'platform_reconciled_by' => $employeeId,
-        ]);
-    }
-
-    public function markPartnerReconciled(Reconciliation $rec, int $employeeId): void
-    {
-        $rec->update([
-            'status'               => 'partner_reconciled',
-            'partner_reconciled_by'=> $employeeId,
-        ]);
-    }
-
-    public function close(Reconciliation $rec, bool $lockEntries = true): void
-    {
-        $rec->update(['status' => 'closed']);
-
-        if ($lockEntries) {
-            \App\Models\LedgerEntry::whereIn(
-                'id',
-                $rec->reconciliationEntries()->pluck('ledger_entry_id')
-            )->update(['is_locked' => true]);
-        }
+        // عدّل هذا ليستثني القيود المقفلة/المسواة بالفعل
+        return LedgerEntry::query()
+            ->whereBetween(DB::raw('DATE(posted_at)'), [$from, $to])
+            ->where('is_locked', false)
+            ->when($kind === 'host', function ($q) use ($organizationId) {
+                // قيود مستحقات الجهة المضيفة
+                $q->where('account_code', AffiliationPostingService::ACC_PAY_HOST)
+                    ->where('organization_id', $organizationId);
+            })
+            ->when($kind === 'partner', function ($q) use ($organizationId) {
+                // قيود مستحقات الشريك (شركة التأمين)
+                $q->where('account_code', AffiliationPostingService::ACC_PAY_PARTNER)
+                    ->where('organization_id', $organizationId);
+            });
     }
 }

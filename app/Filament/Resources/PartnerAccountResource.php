@@ -17,11 +17,13 @@ class PartnerAccountResource extends Resource
 {
     protected static ?string $model = Organization::class;
 
-    protected static ?string $navigationGroup = 'الحسابات';
+    protected static ?string $navigationGroup = 'الفوترة والمالية';
     protected static ?string $navigationLabel = 'حسابات الشركاء';
+    protected static ?int    $navigationSort  = 20;
+    protected static ?string $navigationIcon  = 'heroicon-o-building-office-2';
+
     protected static ?string $pluralLabel     = 'حسابات الشركاء';
     protected static ?string $modelLabel      = 'حساب الشريك';
-    protected static ?string $navigationIcon  = 'heroicon-o-banknotes';
 
     public static function table(Table $table): Table
     {

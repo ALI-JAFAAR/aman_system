@@ -15,8 +15,11 @@ use Filament\Forms\Form;
 class OrganizationSpecializationResource extends Resource{
 
     protected static ?string $model = OrganizationSpecialization::class;
-    protected static ?string $navigationIcon = 'heroicon-o-link';
+    protected static ?string $navigationGroup = 'الإدارة';
     protected static ?string $navigationLabel = 'تقييد الاختصاصات للجهات';
+    protected static ?int    $navigationSort  = 50;
+    protected static ?string $navigationIcon  = 'heroicon-o-link';
+
 
     public static function form(Form $form): Form{
         return $form->schema([

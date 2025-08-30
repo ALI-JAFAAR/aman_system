@@ -17,11 +17,13 @@ class HostAccountResource extends Resource
 {
     protected static ?string $model = Organization::class;
 
-    protected static ?string $navigationGroup = 'الحسابات';
+    protected static ?string $navigationGroup = 'الفوترة والمالية';
     protected static ?string $navigationLabel = 'حسابات الجهات';
+    protected static ?int    $navigationSort  = 30;
+    protected static ?string $navigationIcon  = 'heroicon-o-building-office';
+
     protected static ?string $pluralLabel     = 'حسابات الجهات (مضيف)';
     protected static ?string $modelLabel      = 'حساب الجهة';
-    protected static ?string $navigationIcon  = 'heroicon-o-rectangle-stack';
 
     public static function table(Table $table): Table
     {

@@ -18,9 +18,12 @@ class InsuranceRequestResource extends Resource{
 
     protected static ?string $navigationGroup = 'التأمينات';
     protected static ?string $navigationLabel = 'طلبات التأمين';
+    protected static ?int    $navigationSort  = 40;
+    protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-check';
+
+
     protected static ?string $pluralLabel     = 'طلبات التأمين';
     protected static ?string $modelLabel      = 'طلب التأمين';
-    protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-check';
 
     public static function form(Form $form): Form{
         return $form->schema([

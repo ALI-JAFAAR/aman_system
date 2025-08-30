@@ -63,7 +63,6 @@ class AffiliationPostingService
 
             $subtotal  = 0.0;
             $createdBy = $issuerEmployeeId;
-            // 2) الانتسابات + رقم الهوية + بند + قيود
             foreach (($payload['affiliations'] ?? []) as $row) {
                 $aff = UserAffiliation::create([
                     'user_id'         => $userId,
@@ -81,7 +80,7 @@ class AffiliationPostingService
                     'user_affiliation_id' => $aff->id,
                     'profession_id'       => $row['profession_id'],
                     'specialization_id'   => $row['specialization_id'] ?? null,
-                    'status'              => 'active',
+                    'status'              => 'pending',
                 ]);
                 $fee = (float)($row['affiliation_fee'] ?? 0);
                 if ($fee > 0) {
@@ -98,6 +97,7 @@ class AffiliationPostingService
                         'line_total'      => $fee,
                         'distribution_snapshot' => null,
                     ]);
+
 
                     // ذمم + إيراد رسوم انتساب
                     $this->ledger(self::ACC_AR,      'debit',  $fee, 'رسوم انتساب',          $invoice->id, $createdBy, $aff);
@@ -175,10 +175,19 @@ class AffiliationPostingService
 
                 // ذمم
                 $this->ledger(self::ACC_AR, 'debit', $price, 'بيع باقة', $invoice->id, $createdBy, $uo);
+                if ($partnerShare > 0) {
+                    $this->ledger(
+                        self::ACC_PAY_PARTNER, 'credit', $partnerShare, 'مستحق للشريك',
+                        $invoice->id, $createdBy, $uo, $po->organization_id // <- org of insurance company
+                    );
+                }
 
-                // دائنات التوزيع
-                if ($partnerShare  > 0) $this->ledger(self::ACC_PAY_PARTNER, 'credit', $partnerShare,  'مستحق للشريك',           $invoice->id, $createdBy, $uo);
-                if ($hostShare     > 0) $this->ledger(self::ACC_PAY_HOST,    'credit', $hostShare,     'مستحق للجهة',            $invoice->id, $createdBy, $uo);
+                if ($hostShare > 0) {
+                    $this->ledger(
+                        self::ACC_PAY_HOST, 'credit', $hostShare, 'مستحق للجهة',
+                        $invoice->id, $createdBy, $uo, $hostOrgId // <- org of host
+                    );
+                }
                 if ($platformShare > 0) $this->ledger(self::ACC_REV_PKG,     'credit', $platformShare, 'إيراد المنصّة من الباقة', $invoice->id, $createdBy, $uo);
             }
 
@@ -294,32 +303,25 @@ class AffiliationPostingService
      * إنشاء قيد محاسبي مع ربط إلزامي بالفاتورة.
      * لو لم يُمرَّر مرجع، نضع مرجع الفاتورة نفسها لتجنّب NULL في reference_type/reference_id.
      */
-    protected function ledger(
-        string $account,
-        string $type,                 // 'debit' | 'credit'
-        float $amount,
-        string $desc,
-        ?int $invoiceId = null,
-        ?int $createdByEmployeeId = null,
-               $reference = null      // موديل مرجعي اختياري
-    ): void {
+    protected function ledger(string $account, string $type, float $amount, string $desc, ?int $invoiceId = null, ?int $createdByEmployeeId = null, $reference = null, ?int $forOrganizationId = null ): void {
         $amount = round((float)$amount, 2);
         if ($amount <= 0) return;
 
         $refType = $reference ? get_class($reference) : Invoice::class;
-        $refId   = $reference->id ?? $invoiceId;   // لو لا مرجع، اربط بالـ Invoice
+        $refId   = $reference->id ?? $invoiceId;
 
         LedgerEntry::create([
-            'invoice_id'     => $invoiceId,
-            'reference_type' => $refType,
-            'reference_id'   => $refId,
-            'account_code'   => $account,
-            'entry_type'     => $type,
-            'amount'         => $amount,
-            'description'    => $desc,
-            'created_by'     => $createdByEmployeeId,
-            'is_locked'      => false,
-            'posted_at'      => now(),
+            'invoice_id'      => $invoiceId,
+            'reference_type'  => $refType,
+            'reference_id'    => $refId,
+            'organization_id' => $forOrganizationId,
+            'account_code'    => $account,
+            'entry_type'      => $type,
+            'amount'          => $amount,
+            'description'     => $desc,
+            'created_by'      => $createdByEmployeeId,
+            'is_locked'       => false,
+            'posted_at'       => now(),
         ]);
     }
 

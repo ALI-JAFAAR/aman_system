@@ -11,10 +11,11 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 
 class CashboxOverview extends Page{
-    protected static ?string $navigationGroup = 'الحسابات';
-    protected static ?string $navigationLabel = 'القاصة';
-    protected static ?string $navigationIcon  = 'heroicon-o-wallet';
-    protected static ?int $navigationSort     = 10;
+    protected static ?string $navigationGroup = 'الفوترة والمالية';
+    protected static ?string $navigationLabel = 'الخزينة / الصندوق';
+    protected static ?int    $navigationSort  = 40;
+    protected static ?string $navigationIcon  = 'heroicon-o-banknotes';
+
 
     protected static string $view = 'filament.pages.cashbox-overview';
 

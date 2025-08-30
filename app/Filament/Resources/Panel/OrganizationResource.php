@@ -23,11 +23,11 @@ use App\Filament\Resources\Panel\OrganizationResource\RelationManagers;
 class OrganizationResource extends Resource{
     protected static ?string $model = Organization::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'الإدارة';
+    protected static ?string $navigationLabel = 'الجهات';
+    protected static ?int    $navigationSort  = 10;
+    protected static ?string $navigationIcon  = 'heroicon-o-building-office-2';
 
-    protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationGroup = 'Admin';
 
     public static function getModelLabel(): string{
         return __('crud.organizations.itemTitle');

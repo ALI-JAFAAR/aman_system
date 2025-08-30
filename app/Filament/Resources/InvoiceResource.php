@@ -14,11 +14,14 @@ class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
 
-    protected static ?string $navigationIcon  = 'heroicon-o-document-text';
-    protected static ?string $navigationLabel = 'طلبات الانتساب';
+    protected static ?string $navigationGroup = 'الفوترة والمالية';
+    protected static ?string $navigationLabel = 'الفواتير';
+    protected static ?int    $navigationSort  = 10;
+    protected static ?string $navigationIcon  = 'heroicon-o-document-currency-dollar';
+
+
     protected static ?string $pluralLabel     = 'طلبات الانتساب';
     protected static ?string $modelLabel      = 'طلب انتساب';
-    protected static ?string $navigationGroup = 'الانتساب';
 
     public static function getPages(): array
     {

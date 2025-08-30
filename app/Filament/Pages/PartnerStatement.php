@@ -12,9 +12,11 @@ use Illuminate\Support\Facades\Auth;
 
 class PartnerStatement extends Page
 {
-    protected static ?string $navigationGroup = 'التقارير المالية';
+    protected static ?string $navigationGroup = 'الفوترة والمالية';
     protected static ?string $navigationLabel = 'كشف حساب الشريك';
-    protected static ?string $navigationIcon  = 'heroicon-o-banknotes';
+    protected static ?int    $navigationSort  = 60;
+    protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-list';
+
     protected static string $view = 'filament.pages.partner-statement';
 
     public ?int $orgId = null;

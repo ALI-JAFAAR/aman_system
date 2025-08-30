@@ -54,9 +54,11 @@ use Filament\Forms\Components\Radio;
 class AffiliationWizard extends Page implements HasForms{
     use InteractsWithForms;
     public ?array $data = [];
-    protected static ?string $navigationIcon  = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'الانتساب';
     protected static ?string $navigationLabel = 'تسجيل انتساب جديد';
-    protected static ?int    $navigationSort  = 1;
+    protected static ?int    $navigationSort  = 10;
+    protected static ?string $navigationIcon  = 'heroicon-o-rectangle-stack';
+
     protected static ?string $slug            = 'affiliation';
     protected static string  $view            = 'filament.pages.affiliation-wizard';
 
@@ -187,6 +189,17 @@ class AffiliationWizard extends Page implements HasForms{
                                 ),
 
                             // النقابات التابعة للاتحاد
+                            Toggle::make('is_union_staff')
+                                ->label('أنا موظف/إداري في الاتحاد (الانتساب مباشرة للاتحاد)')
+                                ->inline(false)
+                                ->default(false)
+                                ->visible(fn (Get $get) =>
+                                    $get('../../employment_sector') === 'private'
+                                    && $get('kind') === 'federation'
+                                )
+                                ->live(),
+
+// النقابات التابعة للاتحاد — مطلوبة إلا إذا كان الموظف اتحاد
                             Select::make('union_id')
                                 ->label('النقابة')
                                 ->options(fn (Get $get) =>
@@ -200,10 +213,12 @@ class AffiliationWizard extends Page implements HasForms{
                                 ->visible(fn (Get $get) =>
                                     $get('../../employment_sector') === 'private'
                                     && $get('kind') === 'federation'
+                                    && ! (bool) $get('is_union_staff')
                                 )
                                 ->required(fn (Get $get) =>
                                     $get('../../employment_sector') === 'private'
                                     && $get('kind') === 'federation'
+                                    && ! (bool) $get('is_union_staff')
                                 ),
 
                             // مؤسسات:
@@ -861,6 +876,7 @@ class AffiliationWizard extends Page implements HasForms{
 
             // affiliation
             'affiliations'                     => ['required','array','min:1'],
+            'affiliations.*.is_union_staff'   => ['nullable','boolean'],
             'affiliations.*.kind'              => ['nullable','in:federation,institution'],
             'affiliations.*.federation_id'     => ['nullable','integer','exists:organizations,id'],
             'affiliations.*.union_id'          => ['nullable','integer','exists:organizations,id'],
@@ -946,10 +962,15 @@ class AffiliationWizard extends Page implements HasForms{
                 if ($this->employment_sector === 'public') {
                     $orgId = $row['institution_id'] ?? null;
                 } else {
-                    $orgId = (($row['kind'] ?? null) === 'federation')
-                        ? ($row['union_id'] ?? null)
-                        : ($row['institution_id'] ?? null);
+                if (($row['kind'] ?? null) === 'federation') {
+                    $isStaff = (bool) ($row['is_union_staff'] ?? false);
+                    $orgId   = $isStaff
+                        ? ($row['federation_id'] ?? null)   // موظف اتحاد → الانتساب للاتحاد نفسه
+                        : ($row['union_id']      ?? null);  // عضو عادي → انتساب للنقابة التابعة
+                } else {
+                    $orgId = $row['institution_id'] ?? null;
                 }
+            }
 
                 if (!$orgId) {
                     throw ValidationException::withMessages([

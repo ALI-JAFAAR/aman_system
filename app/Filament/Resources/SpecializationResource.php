@@ -16,8 +16,11 @@ class SpecializationResource extends Resource
 {
     protected static ?string $model = Specialization::class;
 
-    protected static ?string $navigationIcon  = 'heroicon-o-sparkles';
+    protected static ?string $navigationGroup = 'الإدارة';
     protected static ?string $navigationLabel = 'الاختصاصات';
+    protected static ?int    $navigationSort  = 40;
+    protected static ?string $navigationIcon  = 'heroicon-o-adjustments-horizontal';
+
     protected static ?string $modelLabel      = 'اختصاص';
     protected static ?string $pluralModelLabel= 'الاختصاصات';
 

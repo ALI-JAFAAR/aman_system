@@ -25,8 +25,7 @@ class LedgerEntry extends Model{
         return $this->hasMany(ReconciliationEntry::class);
     }
 
-    public function scopeForPartnerOrg($q, int $partnerOrgId)
-    {
+    public function scopeForPartnerOrg($q, int $partnerOrgId){
         // 2100 entries related to user_offerings -> partner_offerings.organization_id = partnerOrgId
         return $q->select('ledger_entries.*')
             ->join('user_offerings as uo', function ($j) {
@@ -56,4 +55,6 @@ class LedgerEntry extends Model{
             ->whereNull('re.id');
     }
 
+    public function reference() { return $this->morphTo(); }
+    public function invoice()   { return $this->belongsTo(Invoice::class); }
 }

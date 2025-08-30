@@ -7,11 +7,26 @@ use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Actions\Action;
+use App\Services\ReconciliationBuilder;
 
 class ViewReconciliation extends ViewRecord{
 
     protected static string $resource = ReconciliationResource::class;
 
+    protected function getHeaderActions(): array{
+        return [
+            Action::make('finalize')
+                ->label('اعتماد وإقفال')
+                ->requiresConfirmation()
+                ->action(function () {
+                    app(ReconciliationBuilder::class)->finalize($this->record);
+                    $this->notify('success', 'تم اعتماد التسوية وإقفال القيود وتحديث محفظة الجهة.');
+                    $this->refreshFormData();
+                })
+                ->visible(fn () => $this->record->status === 'draft'),
+        ];
+    }
     public function infolist(Infolist $infolist): Infolist{
         return $infolist->schema([
             Section::make('الملخص')->schema([
@@ -25,17 +40,39 @@ class ViewReconciliation extends ViewRecord{
                 TextEntry::make('total_platform_share')->label('حصة المنصّة')->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state) . ' IQD' : '—'),
             ])->columns(2),
 
-            Section::make('القيود المندرجة')->schema([
-                RepeatableEntry::make('reconciliationEntries')
+
+            Section::make('القيود المُدرجة')->schema([
+                RepeatableEntry::make('entries_list')
+                    ->label('')
+                    ->state(function ($record) {
+                        return $record->reconciliationEntries()
+                            ->with(['ledgerEntry.invoice'])
+                            ->latest('id')
+                            ->get()
+                            ->map(function ($re) {
+                                $le = $re->ledgerEntry;
+                                return [
+                                    'posted_at'   => optional($le->posted_at)->format('Y-m-d'),
+                                    'account'     => $le->account_code,
+                                    'type'        => $le->entry_type,
+                                    'amount'      => (float) $le->amount,
+                                    'description' => $le->description,
+                                    'invoice_no'  => optional($le->invoice)->number,
+                                ];
+                            })->all();
+                    })
                     ->schema([
-                        TextEntry::make('ledgerEntry.posted_at')->label('تاريخ')->dateTime('Y-m-d H:i'),
-                        TextEntry::make('ledgerEntry.account_code')->label('حساب'),
-                        TextEntry::make('ledgerEntry.entry_type')->label('نوع'),
-                        TextEntry::make('ledgerEntry.amount')->label('مبلغ')->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state) . ' IQD' : '—'),
-                        TextEntry::make('ledgerEntry.description')->label('الوصف'),
-                        TextEntry::make('ledgerEntry.invoice.number')->label('فاتورة')->placeholder('—'),
-                    ])->columns(6)
-            ])->collapsible(),
+                        TextEntry::make('posted_at')->label('التاريخ'),
+                        TextEntry::make('invoice_no')->label('الفاتورة')->placeholder('—'),
+                        TextEntry::make('account')->label('الحساب'),
+                        TextEntry::make('type')->label('النوع')->badge()
+                            ->colors(['success' => 'debit', 'danger' => 'credit']),
+                        TextEntry::make('amount')->label('المبلغ')
+                            ->formatStateUsing(fn ($state) => number_format((float) $state) . ' IQD'),
+                        TextEntry::make('description')->label('الوصف')->columnSpanFull(),
+                    ])
+                    ->visible(fn ($state) => is_array($state) && count($state) > 0),
+            ])->collapsible()
         ]);
     }
 }
