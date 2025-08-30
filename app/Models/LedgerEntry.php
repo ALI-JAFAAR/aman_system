@@ -24,4 +24,36 @@ class LedgerEntry extends Model{
     public function reconciliationEntries(){
         return $this->hasMany(ReconciliationEntry::class);
     }
+
+    public function scopeForPartnerOrg($q, int $partnerOrgId)
+    {
+        // 2100 entries related to user_offerings -> partner_offerings.organization_id = partnerOrgId
+        return $q->select('ledger_entries.*')
+            ->join('user_offerings as uo', function ($j) {
+                $j->on('ledger_entries.reference_id', '=', 'uo.id')
+                    ->where('ledger_entries.reference_type', '=', \App\Models\UserOffering::class);
+            })
+            ->join('partner_offerings as po', 'po.id', '=', 'uo.partner_offering_id')
+            ->where('po.organization_id', $partnerOrgId)
+            ->where('ledger_entries.account_code', '2100')
+            ->whereNull('ledger_entries.deleted_at')
+            ->distinct();
+    }
+
+    public function scopeForHostOrg($q, int $hostOrgId){
+        // 2200 entries tied to the same invoice as offering items for that host org
+        return $q->select('ledger_entries.*')
+            ->join('invoice_items as ii', 'ii.invoice_id', '=', 'ledger_entries.invoice_id')
+            ->where('ii.item_type', 'offering')
+            ->where('ii.organization_id', $hostOrgId)
+            ->where('ledger_entries.account_code', '2200')
+            ->whereNull('ledger_entries.deleted_at')
+            ->distinct();
+    }
+
+    public function scopeUnreconciled($q){
+        return $q->leftJoin('reconciliation_entries as re', 're.ledger_entry_id', '=', 'ledger_entries.id')
+            ->whereNull('re.id');
+    }
+
 }

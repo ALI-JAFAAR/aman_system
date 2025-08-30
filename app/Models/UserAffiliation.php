@@ -24,4 +24,9 @@ class UserAffiliation extends Model
     public function userProfessions(){
         return $this->hasMany(UserProfession::class);
     }
+
+
+    public function userOfferings(){
+        return $this->hasMany(UserOffering::class, 'user_id', 'user_id');
+    }
 }

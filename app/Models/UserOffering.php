@@ -23,15 +23,14 @@ class UserOffering extends Model
         'partner_offering_id',
     ];
 
-    public function user()
-    {
+    public function user(){
         return $this->belongsTo(User::class);
     }
 
-    public function partnerOffering()
-    {
+    public function partnerOffering(){
         return $this->belongsTo(PartnerOffering::class);
     }
+
 
     public function claims()
     {

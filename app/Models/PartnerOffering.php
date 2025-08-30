@@ -40,4 +40,5 @@ class PartnerOffering extends Model{
         return $this->hasOne(\App\Models\OfferingDistribution::class);
     }
 
+
 }
