@@ -3,8 +3,7 @@
 namespace App\Support;
 
 trait ShowsOfferings{
-    protected function offeringsStateForUserId(int $userId): array
-    {
+    protected function offeringsStateForUserId(int $userId): array{
         return \App\Models\UserOffering::query()
             ->with([
                 'partnerOffering:id,organization_id,package_id,price',

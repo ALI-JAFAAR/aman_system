@@ -18,6 +18,7 @@ class UserService extends Model{
         'submitted_at',
         'processed_at',
         'processed_by',
+        'employee_id',
         'notes',
         'user_id',
         'service_id',

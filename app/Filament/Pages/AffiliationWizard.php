@@ -82,14 +82,12 @@ class AffiliationWizard extends Page implements HasForms{
     public string $employment_sector = 'private';
     // موظف مُصدِّر العملية
     public ?int $issuer_employee_id = null;
-
     // المهنة/الاختصاص
     public ?int $profession_id = null;
     public ?int $specialization_id = null;
     public ?string $notes = null;
     public array $offerings = [];
     public array $service_requests = [];
-
     public bool  $has_family       = false;
     public array $family_members   = [];
     public array $affiliations = [];
@@ -876,7 +874,7 @@ class AffiliationWizard extends Page implements HasForms{
 
             // affiliation
             'affiliations'                     => ['required','array','min:1'],
-            'affiliations.*.is_union_staff'   => ['nullable','boolean'],
+            'affiliations.*.is_union_staff'    => ['nullable','boolean'],
             'affiliations.*.kind'              => ['nullable','in:federation,institution'],
             'affiliations.*.federation_id'     => ['nullable','integer','exists:organizations,id'],
             'affiliations.*.union_id'          => ['nullable','integer','exists:organizations,id'],
@@ -1020,7 +1018,7 @@ class AffiliationWizard extends Page implements HasForms{
                     'submitted_at' => now(),
                     'user_id'      => $user->id,
                     'notes'        => '',                 // <- use notes
-                    'processed_by' => $currentEmployeeId, // <- use processed_by (employee id)
+                    'employee_id'  => $currentEmployeeId,
                     'form_data'    => $sr['fields'] ?? [],// <- persist dynamic fields
                 ]);
 

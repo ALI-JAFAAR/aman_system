@@ -12,7 +12,7 @@ class LedgerEntry extends Model{
 
 
     protected $fillable = [
-        'invoice_id','reference_type','reference_id','account_code','entry_type',
+        'invoice_id','reference_type','reference_id','organization_id','account_code','entry_type',
         'amount','description','created_by','is_locked','posted_at',
     ];
     protected $casts = ['posted_at' => 'datetime'];

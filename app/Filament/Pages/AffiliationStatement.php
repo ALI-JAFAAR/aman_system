@@ -77,8 +77,7 @@ class AffiliationStatement extends Page
         });
     }
 
-    public function getTotalsProperty()
-    {
+    public function getTotalsProperty(){
         $rows = $this->rows;
         return [
             'count' => $rows->count(),

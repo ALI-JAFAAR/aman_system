@@ -36,32 +36,37 @@ class ReconciliationResource extends Resource{
 
                     Forms\Components\Select::make('organization_id')
                         ->label('الجهة')
-                        ->options(Organization::orderBy('name')->pluck('name','id')->toArray())
+                        ->options(Organization::orderBy('name')->pluck('name', 'id')->toArray())
                         ->required()
                         ->searchable()
                         ->preload()
                         ->live()
-                        ->afterStateUpdated(function (Set $set, ?string $state) {
-                            if (! $state) {
+                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                            if (blank($state)) {
                                 $set('period_start', null);
                                 $set('period_end', null);
                                 return;
                             }
 
-                            $c = Contract::activeForOrganization((int)$state);
+                            // اجلب العقد الفعّال لليوم
+                            $c = \App\Models\Contract::activeForOrganization((int) $state);
+
                             if ($c) {
-                                $start = optional($c->contract_start)?->format('Y-m-d') ?? now()->toDateString();
-                                // نهاية الفترة = اليوم أو قبل نهاية العقد بيوم (لأن contract_end > اليوم)
-                                $end   = min(
-                                    now()->toDateString(),
-                                    optional($c->contract_end)?->format('Y-m-d') ?? now()->toDateString()
-                                );
+                                // خذ تواريخ العقد كما هي (بدون format لتفادي مشاكل الـ casts)
+                                $today = now()->toDateString();
+
+                                $start = $c->contract_start ?: $today;
+
+                                // نهاية الفترة: أصغر من (اليوم، نهاية العقد إن وُجدت)
+                                $endCandidate = $c->contract_end ?: $today;
+                                $end = strcmp($today, $endCandidate) < 0 ? $today : $endCandidate;
 
                                 $set('period_start', $start);
                                 $set('period_end', $end);
                             } else {
                                 $set('period_start', null);
                                 $set('period_end', null);
+
                                 Notification::make()
                                     ->title('لا يوجد عقد فعّال لهذه الجهة')
                                     ->warning()
