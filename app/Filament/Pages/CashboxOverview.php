@@ -16,11 +16,9 @@ class CashboxOverview extends Page{
     protected static ?int    $navigationSort  = 40;
     protected static ?string $navigationIcon  = 'heroicon-o-banknotes';
 
-
     protected static string $view = 'filament.pages.cashbox-overview';
 
-    public static function getNavigationBadge(): ?string
-    {
+    public static function getNavigationBadge(): ?string{
         return null;
     }
 }

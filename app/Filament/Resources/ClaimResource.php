@@ -149,11 +149,66 @@ class ClaimResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                // (إجراءات الاعتماد/الرفض/الصرف أضفناها في الرد السابق — تبقى كما هي)
+                Tables\Actions\EditAction::make(),
+
+                Tables\Actions\Action::make('approve')
+                    ->label('اعتماد')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->visible(fn (\App\Models\Claim $record): bool =>
+                    in_array((string) $record->status, ['submitted','under_review'])
+                    )
+                    ->form([
+                        Forms\Components\TextInput::make('resolution_amount')
+                            ->label('المبلغ المعتمد')->numeric()->minValue(0)->default(0)->required(),
+                        Forms\Components\Textarea::make('resolution_note')->label('ملاحظة')->rows(3),
+                    ])
+                    ->action(function (\App\Models\Claim $record, array $data): void {
+                        $record->update([
+                            'status'            => 'approved',
+                            'resolution_amount' => (float) ($data['resolution_amount'] ?? 0),
+                            'resolution_note'   => $data['resolution_note'] ?? null,
+                        ]);
+                    }),
+
+                Tables\Actions\Action::make('reject')
+                    ->label('رفض')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn (\App\Models\Claim $record): bool =>
+                    in_array((string) $record->status, ['submitted','under_review'])
+                    )
+                    ->form([
+                        Forms\Components\Textarea::make('resolution_note')->label('سبب الرفض')->required()->rows(3),
+                    ])
+                    ->action(function (\App\Models\Claim $record, array $data): void {
+                        $record->update([
+                            'status'            => 'rejected',
+                            'resolution_amount' => 0,
+                            'resolution_note'   => $data['resolution_note'] ?? null,
+                        ]);
+                    }),
+
+                Tables\Actions\Action::make('close')
+                    ->label('إقفال')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->visible(fn (\App\Models\Claim $record): bool =>
+                    in_array((string) $record->status, ['approved','rejected'])
+                    )
+                    ->action(fn (\App\Models\Claim $record) => $record->update(['status' => 'closed'])),
             ])
+
             ->bulkActions([]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Resources\ClaimResource\RelationManagers\ClaimResponsesRelationManager::class,
+        ];
+    }
     public static function getPages(): array
     {
         return [

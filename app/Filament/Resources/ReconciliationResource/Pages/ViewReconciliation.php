@@ -21,7 +21,7 @@ class ViewReconciliation extends ViewRecord{
                 ->requiresConfirmation()
                 ->action(function () {
                     app(ReconciliationBuilder::class)->finalize($this->record);
-                    $this->notify('success', 'تم اعتماد التسوية وإقفال القيود وتحديث محفظة الجهة.');
+//                    $this->notify('success', 'تم اعتماد التسوية وإقفال القيود وتحديث محفظة الجهة.');
                     $this->refreshFormData();
                 })
                 ->visible(fn () => $this->record->status === 'draft'),

@@ -550,7 +550,6 @@ class AffiliationWizard extends Page implements HasForms{
                                             ->mapWithKeys(fn ($u) => [$u->id => "{$u->name} ({$u->email})"])
                                             ->all()
                                     ),
-
                                 // create NEW related workers on the fly
                                 Repeater::make('related_workers_new')
                                     ->label('إضافة عاملين جدد (إنشاء حسابات جديدة)')

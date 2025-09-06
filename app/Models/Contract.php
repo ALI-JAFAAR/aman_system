@@ -52,25 +52,58 @@ class Contract extends Model
             ->when($this->getAttribute('status') !== null, fn ($qq) => $qq->where('status', 'active'));
     }
 
-    public static function activeForOrganization(int $orgId, $asOf = null): ?self{
+    public function scopeEffective(Builder $q, ?string $asOf = null): Builder{
+        $asOf = $asOf ?: now()->toDateString();
+        return $q->where(function ($qq) use ($asOf) {
+            $qq->whereNull('contract_start')
+                ->orWhereDate('contract_start', '<=', $asOf);
+        })
+            ->where(function ($qq) use ($asOf) {
+                $qq->whereNull('contract_end')
+                    ->orWhereDate('contract_end', '>', $asOf); // أكبر من اليوم كما طلبت
+            });
+    }
+
+    /** أقدم دالة لديك، أبقيها إن كنت تحتاجها في أماكن أخرى */
+    public static function activeForOrganization(int $orgId, ?string $asOf = null): ?self{
         return static::query()
             ->where('organization_id', $orgId)
-            ->active($asOf)
-            ->orderByDesc('id')       // لو تعددت العقود الفعّالة نأخذ الأحدث
+            ->effective($asOf)
+            ->latest('id')
             ->first();
     }
-    public function organization()
-    {
+
+    public static function activeForOrgByInitiatorAndService(int $orgId, string $initiator, ?string $serviceType = null, ?string $asOf = null): ?self {
+        $asOf = $asOf ?: now()->toDateString();
+
+        // 1) محاولة تطابق كامل (جهة + منشئ + نوع خدمة)
+        $match = static::query()
+            ->where('organization_id', $orgId)
+            ->where('initiator_type', $initiator)
+            ->when($serviceType, fn ($q) => $q->where('service_type', $serviceType))
+            ->effective($asOf)
+            ->latest('id')
+            ->first();
+        if ($match) return $match;
+        // 2) fallback على عقد "other" إن لم يوجد نوع الخدمة المحدّد
+        return static::query()
+            ->where('organization_id', $orgId)
+            ->where('initiator_type', $initiator)
+            ->where('service_type', 'other')
+            ->effective($asOf)
+            ->latest('id')
+            ->first();
+    }
+
+    public function organization(){
         return $this->belongsTo(Organization::class);
     }
 
-    public function reconciliations()
-    {
+    public function reconciliations(){
         return $this->hasMany(Reconciliation::class);
     }
 
-    public function partnerOffering()
-    {
+    public function partnerOffering(){
         return $this->belongsTo(PartnerOffering::class);
     }
 }

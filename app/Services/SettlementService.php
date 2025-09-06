@@ -17,8 +17,7 @@ class SettlementService
     public const ACC_BANK        = AffiliationPostingService::ACC_BANK;        // 1020
 
     /** تحقق سريع ضد فترات مُقفلة */
-    protected function assertNotClosed(\DateTimeInterface $postedAt): void
-    {
+    protected function assertNotClosed(\DateTimeInterface $postedAt): void{
         if (class_exists(\App\Models\AccountingPeriod::class)) {
             $exists = \App\Models\AccountingPeriod::query()
                 ->where('is_closed', true)
@@ -31,8 +30,7 @@ class SettlementService
         }
     }
 
-    protected function cashAccount(string $method): string
-    {
+    protected function cashAccount(string $method): string{
         return match ($method) {
             'pos'      => self::ACC_POS,
             'zaincash' => self::ACC_ZAINCASH,
@@ -42,8 +40,7 @@ class SettlementService
     }
 
     /** تسوية مع الشريك (شركة تأمين): Dr Cash/Bank Cr 2100 */
-    public function settlePartner(int $partnerOrgId, float $amount, string $method, \DateTimeInterface $postedAt, ?int $employeeId = null, ?string $note = null): void
-    {
+    public function settlePartner(int $partnerOrgId, float $amount, string $method, \DateTimeInterface $postedAt, ?int $employeeId = null, ?string $note = null): void{
         $this->assertNotClosed($postedAt);
         $amount = round(max(0, $amount), 2);
         if ($amount <= 0) return;

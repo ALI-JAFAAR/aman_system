@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class ProjectWorker extends Model
-{
+class ProjectWorker extends Model{
+
     use HasFactory;
     use SoftDeletes;
 
@@ -22,12 +22,6 @@ class ProjectWorker extends Model
         'notes',
     ];
 
-/**
- * Define a many-to-one relationship with the Project model
- * This method indicates that the current model belongs to a Project model
- *
- * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
- */
     public function project(){
         return $this->belongsTo(Project::class);
     }
@@ -35,4 +29,5 @@ class ProjectWorker extends Model
     public function user(){
         return $this->belongsTo(User::class);
     }
+
 }

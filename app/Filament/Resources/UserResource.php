@@ -4,6 +4,10 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\RelationManagers\AdminRecordsRelationManager;
+use App\Filament\Resources\UserResource\RelationManagers\AffiliationsRelationManager;
+use App\Filament\Resources\UserResource\RelationManagers\EmployeeRelationManager;
+use App\Filament\Resources\UserResource\RelationManagers\ProfessionsRelationManager;
 use App\Models\User;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -52,10 +56,15 @@ class UserResource extends Resource
             ->defaultSort('id', 'desc');
     }
 
-    public static function getRelations(): array
-    {
-        return []; // سنعرض كل شيء في صفحة العرض عبر Infolist + Blade
+    public static function getRelations(): array{
+        return [
+            EmployeeRelationManager::class,
+            AdminRecordsRelationManager::class,
+            ProfessionsRelationManager::class,
+            AffiliationsRelationManager::class,
+        ];
     }
+
 
     public static function getPages(): array
     {
@@ -70,9 +79,9 @@ class UserResource extends Resource
 //namespace App\Filament\Resources;
 //
 //use App\Filament\Resources\UserResource\Pages;
-//use App\Filament\Resources\UserResource\RelationManagers\AdministrativeRecordsRelationManager;
+//use App\Filament\Resources\UserResource\RelationManagers\AdminRecordsRelationManager;
 //use App\Filament\Resources\UserResource\RelationManagers\AffiliationsRelationManager;
-//use App\Filament\Resources\UserResource\RelationManagers\ProfessionalRecordsRelationManager;
+//use App\Filament\Resources\UserResource\RelationManagers\ProfessionsRelationManager;
 //use App\Filament\Resources\UserResource\RelationManagers\ProfileRelationManager;
 //use App\Filament\Resources\UserResource\RelationManagers\UserOfferingsRelationManager;
 //use App\Filament\Resources\UserResource\RelationManagers\UserServicesRelationManager;
@@ -187,8 +196,8 @@ class UserResource extends Resource
 //            AffiliationsRelationManager::class,
 //            UserOfferingsRelationManager::class,
 //            UserServicesRelationManager::class,
-//            ProfessionalRecordsRelationManager::class,
-//            AdministrativeRecordsRelationManager::class,
+//            ProfessionsRelationManager::class,
+//            AdminRecordsRelationManager::class,
 //            WalletRelationManager::class,
 //        ];
 //    }

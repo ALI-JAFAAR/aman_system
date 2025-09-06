@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Project extends Model
-{
+class Project extends Model{
+
     use HasFactory;
     use SoftDeletes;
 
@@ -22,18 +22,15 @@ class Project extends Model
         'status',
     ];
 
-    public function user()
-    {
+    public function user(){
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    public function organization()
-    {
+    public function organization(){
         return $this->belongsTo(Organization::class);
     }
 
-    public function projectWorkers()
-    {
+    public function projectWorkers(){
         return $this->hasMany(ProjectWorker::class);
     }
 }
