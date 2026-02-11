@@ -27,7 +27,7 @@ class WalletFactory extends Factory
             'currency' => fake()->currencyCode(),
             'walletable_type' => fake()->text(255),
             'walletable_id' => fake()->randomNumber(),
-            'deleted_at' => fake()->dateTime(),
+            'deleted_at' => null,
             'user_id' => \App\Models\User::factory(),
         ];
     }

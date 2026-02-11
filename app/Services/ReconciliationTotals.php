@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 
 class ReconciliationTotals{
+    
     public static function forPartner(int $orgId, string $from, string $to): array{
         $row = DB::table('invoice_items as ii')
             ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')

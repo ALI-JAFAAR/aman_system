@@ -29,7 +29,7 @@ class ServiceFactory extends Factory
             'name' => fake()->name(),
             'description' => fake()->sentence(15),
             'form_schema' => [],
-            'deleted_at' => fake()->dateTime(),
+            'deleted_at' => null,
         ];
     }
 }

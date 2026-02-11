@@ -13,6 +13,14 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Laravel runs as API + Vue SPA; web password reset UI is deprecated.
+        $this->markTestSkipped('Web password reset UI is handled by the Vue SPA.');
+    }
+
     public function test_reset_password_link_screen_can_be_rendered(): void
     {
         $response = $this->get('/forgot-password');

@@ -15,6 +15,7 @@
 /node_modules
 /public/build
 /public/hot
+/public/spa
 /public/storage
 /storage/*.key
 /storage/pail
@@ -24,3 +25,5 @@ Homestead.yaml
 Thumbs.db
 
 .vemto_settings
+
+/frontend/aman-spa/dist

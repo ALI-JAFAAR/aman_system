@@ -25,13 +25,13 @@ class TransactionFactory extends Factory
         return [
             'transaction_type' => 'credit',
             'amount' => fake()->randomFloat(2, 0, 9999),
-            'status' => fake()->word(),
-            'reference_type' => fake()->text(255),
-            'reference_id' => fake()->randomNumber(),
+            'status' => 'completed',
+            'reference_type' => null,
+            'reference_id' => 0,
             'description' => fake()->sentence(15),
-            'deleted_at' => fake()->dateTime(),
-            'target_wallet_id' => \App\Models\Wallet::factory(),
-            'target_wallet_id' => \App\Models\Wallet::factory(),
+            'deleted_at' => null,
+            'wallet_id' => \App\Models\Wallet::factory(),
+            'target_wallet_id' => null,
         ];
     }
 }

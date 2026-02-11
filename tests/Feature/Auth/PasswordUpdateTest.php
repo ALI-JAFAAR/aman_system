@@ -12,6 +12,14 @@ class PasswordUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Laravel runs as API + Vue SPA; web profile/password UI is deprecated.
+        $this->markTestSkipped('Web profile/password UI is handled by the Vue SPA.');
+    }
+
     public function test_password_can_be_updated(): void
     {
         $user = User::factory()->create();

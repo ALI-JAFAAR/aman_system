@@ -3,8 +3,10 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "dev": "npm --prefix frontend/aman-spa run dev",
+        "preview": "npm --prefix frontend/aman-spa run preview",
+        "build": "npm --prefix frontend/aman-spa run build && npm run copy:spa",
+        "copy:spa": "rm -rf public/spa && mkdir -p public/spa && cp -R frontend/aman-spa/dist/* public/spa/"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",

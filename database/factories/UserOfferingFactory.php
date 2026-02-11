@@ -23,14 +23,14 @@ class UserOfferingFactory extends Factory
     public function definition(): array
     {
         return [
-            'status' => fake()->word(),
-            'platform_generated_number' => fake()->text(255),
-            'partner_filled_number' => fake()->text(255),
-            'applied_at' => fake()->text(255),
-            'activated_at' => fake()->text(255),
-            'rejected_at' => fake()->text(255),
-            'notes' => fake()->text(),
-            'deleted_at' => fake()->dateTime(),
+            'status' => fake()->randomElement(['pending', 'active', 'rejected']),
+            'platform_generated_number' => fake()->optional()->bothify('AMAN-#######'),
+            'partner_filled_number' => fake()->optional()->bothify('PARTNER-#######'),
+            'applied_at' => now()->toDateTimeString(),
+            'activated_at' => now()->toDateTimeString(),
+            'rejected_at' => now()->toDateTimeString(),
+            'notes' => fake()->sentence(12),
+            'deleted_at' => null,
             'user_id' => \App\Models\User::factory(),
             'partner_offering_id' => \App\Models\PartnerOffering::factory(),
         ];

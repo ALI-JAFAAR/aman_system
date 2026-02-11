@@ -25,7 +25,7 @@ class EmployeeFactory extends Factory
         return [
             'job_title' => fake()->jobTitle(),
             'salary' => fake()->randomNumber(),
-            'deleted_at' => fake()->dateTime(),
+            'deleted_at' => null,
             'user_id' => \App\Models\User::factory(),
             'organization_id' => \App\Models\Organization::factory(),
         ];

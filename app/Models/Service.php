@@ -12,11 +12,12 @@ class Service extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['code', 'name', 'description', 'request_schema','is_active','base_price'];
+    // DB column is `form_schema` (JSON). Keep `request_schema` as an alias.
+    protected $fillable = ['code', 'name', 'description', 'form_schema', 'is_active', 'base_price'];
 
 
     protected $casts = [
-        'request_schema' => 'array',
+        'form_schema' => 'array',
     ];
 
     protected static function booted(): void{
@@ -28,8 +29,14 @@ class Service extends Model
             }
         });
     }
+
+    public function getRequestSchemaAttribute()
+    {
+        return $this->form_schema;
+    }
+
     public function setRequestSchemaAttribute($value): void{
-        $this->attributes['request_schema'] = $value ? json_encode($value, JSON_UNESCAPED_UNICODE) : null;
+        $this->attributes['form_schema'] = $value ? json_encode($value, JSON_UNESCAPED_UNICODE) : json_encode([], JSON_UNESCAPED_UNICODE);
     }
     public function userServices(){
         return $this->hasMany(UserService::class);

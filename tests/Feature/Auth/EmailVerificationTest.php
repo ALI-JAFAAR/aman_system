@@ -13,6 +13,14 @@ class EmailVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Laravel runs as API + Vue SPA; web email verification UI is deprecated.
+        $this->markTestSkipped('Web email verification UI is handled by the Vue SPA.');
+    }
+
     public function test_email_verification_screen_can_be_rendered(): void
     {
         $user = User::factory()->unverified()->create();

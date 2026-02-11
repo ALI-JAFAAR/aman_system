@@ -11,6 +11,14 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Laravel runs as API + Vue SPA; web/Volt auth UI is deprecated.
+        $this->markTestSkipped('Web (Volt) auth UI is handled by the Vue SPA.');
+    }
+
     public function test_login_screen_can_be_rendered(): void
     {
         $response = $this->get('/login');

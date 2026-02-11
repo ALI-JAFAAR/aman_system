@@ -28,7 +28,7 @@ class PartnerOfferingFactory extends Factory
             'contract_end' => fake()->date(),
             'auto_approve' => fake()->boolean(),
             'partner_must_fill_number' => fake()->boolean(),
-            'deleted_at' => fake()->dateTime(),
+            'deleted_at' => null,
             'organization_id' => \App\Models\Organization::factory(),
             'package_id' => \App\Models\Package::factory(),
         ];

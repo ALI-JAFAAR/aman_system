@@ -16,8 +16,7 @@ use App\Models\{User,
     UserProfession};
 use Illuminate\Support\Facades\DB;
 
-class AffiliationPostingService
-{
+class AffiliationPostingService{
     /** حسابات مخطط الحسابات */
     public const ACC_AR          = '1100'; // ذمم مدينة
     public const ACC_REV_AFF     = '4100'; // إيراد رسوم انتساب
@@ -303,7 +302,16 @@ class AffiliationPostingService
      * إنشاء قيد محاسبي مع ربط إلزامي بالفاتورة.
      * لو لم يُمرَّر مرجع، نضع مرجع الفاتورة نفسها لتجنّب NULL في reference_type/reference_id.
      */
-    protected function ledger(string $account, string $type, float $amount, string $desc, ?int $invoiceId = null, ?int $createdByEmployeeId = null, $reference = null, ?int $forOrganizationId = null ): void {
+    protected function ledger(
+        string $account,
+        string $type,
+        float $amount,
+        string $desc,
+        ?int $invoiceId = null,
+        ?int $createdByEmployeeId = null,
+        $reference = null,
+        ?int $forOrganizationId = null
+    ): void {
         $amount = round((float)$amount, 2);
         if ($amount <= 0) return;
 

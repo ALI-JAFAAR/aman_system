@@ -1,19 +1,10 @@
 <?php
 
-use App\Http\Controllers\InvoicePrintController;
+use App\Modules\Spa\Http\Controllers\SpaController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome');
-
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
-
-Route::view('profile', 'profile')
-    ->middleware(['auth'])
-    ->name('profile');
-
-Route::get('/invoices/{invoice}/print', [InvoicePrintController::class, 'show'])
-    ->name('invoices.print')
-    ->middleware(['web','auth']);
-require __DIR__.'/auth.php';
+// API-only + SPA frontend.
+// Serve the Vue SPA for non-API routes, while leaving `/api/*`, `/sanctum/*`, and `/docs/*` untouched.
+Route::get('/{any?}', [SpaController::class, 'index'])
+    ->where('any', '^(?!api($|/)|sanctum($|/)|docs($|/)).*')
+    ->name('spa');

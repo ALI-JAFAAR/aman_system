@@ -23,15 +23,15 @@ class ClaimFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => fake()->word(),
+            'type' => fake()->randomElement(['health', 'legal', 'financial']),
             'details' => fake()->sentence(20),
-            'accident_date' => fake()->date(),
-            'amount_requested' => fake()->randomNumber(),
-            'status' => fake()->word(),
-            'resolution_amount' => fake()->randomNumber(),
-            'resolution_note' => fake()->text(),
-            'submitted_at' => fake()->text(255),
-            'deleted_at' => fake()->dateTime(),
+            'accident_date' => fake()->optional()->date(),
+            'amount_requested' => fake()->numberBetween(1, 5000000),
+            'status' => fake()->randomElement(['pending', 'needs_info', 'approved', 'rejected']),
+            'resolution_amount' => 0,
+            'resolution_note' => null,
+            'submitted_at' => now()->toDateTimeString(),
+            'deleted_at' => null,
             'user_offering_id' => \App\Models\UserOffering::factory(),
         ];
     }
